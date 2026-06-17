@@ -1,0 +1,9 @@
+[submodule "benchmarks/nfa-bench"]
+	path = benchmarks/nfa-bench
+	url = git@github.com:VeriFIT/nfa-bench.git
+[submodule "harnesses/pycobench"]
+	path = harnesses/pycobench
+	url = git@github.com:VeriFIT/pycobench.git
+[submodule "subjects/mata"]
+	path = subjects/mata
+	url = git@github.com:VeriFIT/mata.git

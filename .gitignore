@@ -1,0 +1,94 @@
+# Vim cached files
+*.swp
+*.swo
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.out
+*.app
+*.dll
+*.so
+*.dylib
+
+# the build directory
+build/
+Testing/
+build-wasm/
+
+# Nix
+result
+result-*
+
+# direnv
+.direnv
+
+coverage.info
+cov_html
+VERSION
+
+# Environment related
+.DS_Store
+.vscode/
+.idea/
+.venv
+.cache
+.ccls-cache
+
+# Python binding related
+.ipynb_checkpoints/
+**/__pycache__/
+
+# Code coverage profiles and other test artifacts
+*.out
+coverage.*
+*.coverprofile
+profile.cov
+
+# Performance and profiling tests
+tests-integration/pycobench.tasks
+tests-integration/inputs/*.input
+tests-integration/jobs/*.yaml
+tests-integration/src/utils/config.hh
+tests-integration/results/*.csv
+tests-integration/results/*.out
+tests-integration/results/*.output
+
+# debug.log
+
+# Test binary, built with `go test -c`
+# *.test
+
+# Dependency directories
+# vendor/
+
+# Environent files.
+.env.private
+.envrc.private
+
+./bin/
