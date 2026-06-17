@@ -1,0 +1,38 @@
+# automata.net using mintermized inputs
+# automata-min:
+#     cmd: ./scripts/run_automata.sh ./bin/automata ./programs/determinize.emp $1
+# mata; our tested library, version 1.0.0
+mata:
+  cmd: ./bin/mata-emp-interpreter ./emp-programs/determinize-minimize.emp $1
+
+# mata; our tested library with simulation reduction, version 1.0.0
+# mata-sim:
+#     cmd: ./bin/mata-emp-interpreter ./programs/determinize-minimize.emp --sim $1
+
+# vata
+# vata:
+#     cmd: ./bin/vata-emp-interpreter ./programs/determinize.emp $1
+
+# awali
+# awali:
+#     cmd: ./bin/awali-emp-interpreter ./programs/determinize-minimize.emp $1
+
+# libmata; python binding for libmata
+# pymata:
+#     cmd: pyinterpret MataEngine ./programs/determinize.emp $1
+
+# fado
+# pyfado:
+#     cmd: pyinterpret FadoEngine ./programs/determinize-minimize.emp $1
+
+# automata.py
+# pyautomata-lib:
+#     cmd: pyinterpret AutomataLibEngine ./programs/determinize-minimize.emp $1
+
+# # automatalib
+# java-automatalib:
+#     cmd: ./scripts/run_alib.sh ./bin/automatalib-emp-interpreter.jar ./programs/determinize-minimize.emp $1
+
+# # brics
+# java-brics:
+#     cmd: ./scripts/run_brics.sh ./bin/brics-emp-interpreter.jar ./programs/determinize-minimize.emp $1

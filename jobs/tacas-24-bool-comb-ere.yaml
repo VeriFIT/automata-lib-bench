@@ -1,0 +1,40 @@
+# automata.net using mintermized inputs
+automata-min:
+    cmd: ./scripts/run_automata.sh ./bin/automata $1 $2
+
+# mata; our tested library, version 1.0.0
+mata:
+    cmd: ./bin/mata-emp-interpreter $1 $2
+
+# mata; our tested library with simulation reduction, version 1.0.0
+mata-sim:
+    cmd: ./bin/mata-emp-interpreter $1 --sim $2
+
+# vata
+vata:
+    cmd: ./bin/vata-emp-interpreter $1 $2
+
+# awali
+awali:
+    cmd: ./bin/awali-emp-interpreter $1 $2
+
+# libmata; python binding for libmata
+pymata:
+    cmd: pyinterpret MataEngine $1 $2
+
+# fado
+pyfado:
+    cmd: pyinterpret FadoEngine $1 $2
+
+# automata.py
+pyautomata-lib:
+    cmd: pyinterpret AutomataLibEngine $1 $2
+
+# automatalib
+java-automatalib:
+    cmd: ./scripts/run_alib.sh ./bin/automatalib-emp-interpreter.jar $1 $2
+
+# brics
+java-brics:
+    cmd: ./scripts/run_brics.sh ./bin/brics-emp-interpreter.jar $1 $2
+

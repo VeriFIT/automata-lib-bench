@@ -1,0 +1,41 @@
+# automata.net using mintermized inputs
+automata-min:
+    cmd: ./scripts/run_automata.sh ./bin/automata ./programs/bool_comb_inter_sat.emp $1 $2
+
+# mata; our tested library, version 1.0.0
+mata:
+    cmd: ./bin/mata-emp-interpreter ./programs/bool_comb_inter_sat.emp $1 $2
+
+# mata; our tested library with simulation reduction, version 1.0.0
+mata-sim:
+    cmd: ./bin/mata-emp-interpreter ./programs/bool_comb_inter_sat.emp --sim $1 $2
+
+
+# vata
+vata:
+    cmd: ./bin/vata-emp-interpreter ./programs/bool_comb_inter_sat.emp $1 $2
+
+# awali
+awali:
+    cmd: ./bin/awali-emp-interpreter ./programs/bool_comb_inter_sat.emp $1 $2
+
+# libmata; python binding for libmata
+pymata:
+    cmd: pyinterpret MataEngine ./programs/bool_comb_inter_sat.emp $1 $2
+
+# fado
+pyfado:
+    cmd: pyinterpret FadoEngine ./programs/bool_comb_inter_sat.emp $1 $2
+
+# automata.py
+pyautomata-lib:
+    cmd: pyinterpret AutomataLibEngine ./programs/bool_comb_inter_sat.emp $1 $2
+
+# automatalib
+java-automatalib:
+    cmd: ./scripts/run_alib.sh ./bin/automatalib-emp-interpreter.jar ./programs/bool_comb_inter_sat.emp $1 $2
+
+# brics
+java-brics:
+    cmd: ./scripts/run_brics.sh ./bin/brics-emp-interpreter.jar ./programs/bool_comb_inter_sat.emp $1 $2
+
