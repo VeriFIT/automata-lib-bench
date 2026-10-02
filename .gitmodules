@@ -4,6 +4,9 @@
 [submodule "harnesses/pycobench"]
 	path = harnesses/pycobench
 	url = git@github.com:VeriFIT/pycobench.git
+[submodule "harnesses/automata-program-parser"]
+	path = harnesses/automata-program-parser
+	url = git@github.com:VeriFIT/nfa-program-parser.git
 [submodule "subjects/mata"]
 	path = subjects/mata
 	url = git@github.com:VeriFIT/mata.git
