@@ -38,6 +38,9 @@ exclude=
 suffix=""
 basedir=$(realpath $(dirname "$0"))
 rootdir=$(realpath "$basedir/..")
+pycobench_dir="$rootdir/harnesses/pycobench"
+pyco_python="$pycobench_dir/.venv/bin/python3"
+[ -x "$pyco_python" ] || die "pycobench's Python environment not found at $pyco_python. Run 'just setup-python' first."
 config=
 verbose=""
 testrun=false
@@ -109,7 +112,7 @@ prepend_directory() {
 # Check that dependencies for running pycobench were installed
 
 tmp_output=$(mktemp)
-"$rootdir"/harnesses/pycobench/src/pycobench.py >& "$tmp_output"
+env -u PYTHONPATH "$pyco_python" "$pycobench_dir/src/pycobench.py" >& "$tmp_output"
 # if grep -q ModuleNotFoundError "$tmp_output"; then
   # die "error: your system is missing python modules for running pycobench. Did you run 'install requirements.sh'?"
 # fi
@@ -145,9 +148,9 @@ do
     intermediate+=( $sub_result_file )
     if [ "$testrun" = true ]; then
 
-      cat "$rootdir/$benchmark_file" | head -$testrun_count | "$rootdir"/harnesses/pycobench/src/pycobench.py $exclude $methods $verbose -j "$jobs" -c "$config" -t "$timeout" -o "$sub_result_file"
+      cat "$rootdir/$benchmark_file" | head -$testrun_count | env -u PYTHONPATH "$pyco_python" "$pycobench_dir/src/pycobench.py" $exclude $methods $verbose -j "$jobs" -c "$config" -t "$timeout" -o "$sub_result_file"
     else
-      "$rootdir"/harnesses/pycobench/src/pycobench.py $exclude $methods $verbose -j "$jobs" -c "$rootdir/$config" -t "$timeout" -o "$sub_result_file" < "$benchmark_file"
+      env -u PYTHONPATH "$pyco_python" "$pycobench_dir/src/pycobench.py" $exclude $methods $verbose -j "$jobs" -c "$rootdir/$config" -t "$timeout" -o "$sub_result_file" < "$benchmark_file"
     fi
 
     number_of_params=$(($(head -1 < "$benchmark_file"  | tr -cd ';' | wc -c) + 1))
@@ -168,7 +171,7 @@ do
     fi
 done
 
-python3 "$rootdir"/harnesses/pycobench/src/compare_profiles.py "$result_file.csv"
+env -u PYTHONPATH "$pyco_python" "$pycobench_dir/src/compare_profiles.py" "$result_file.csv"
 
 secs=$((SECONDS - start_time))
 formatted_elapsed=$(printf "%dd:%dh:%dm:%ds\n" $((secs/86400)) $((secs%86400/3600)) $((secs%3600/60)) $((secs%60)))
