@@ -91,4 +91,4 @@ tests-integration/results/*.output
 .env.private
 .envrc.private
 
-./bin/
+/bin/
