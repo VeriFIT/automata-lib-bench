@@ -34,16 +34,6 @@
                   ];
 
                 packages = with inputs.self.packages.${pkgs.stdenv.hostPlatform.system}; [
-                  (pkgs.python3.withPackages (
-                    ps: with ps; [
-                      pandas
-                      psutil
-                      pyyaml
-                      tabulate
-                      termcolor
-                      typing-extensions
-                    ]
-                  ))
                 ];
 
                 buildInputs =
@@ -51,6 +41,7 @@
                   [
                     btop
                     just
+                    uv
 		    yazi
  		    helix
 
