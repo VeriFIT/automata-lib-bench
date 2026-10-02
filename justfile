@@ -6,19 +6,9 @@ CXX := env("CXX", "g++")
 # Number of cores for parallel compilation.
 JOBS := env("JOBS", "6")
 
-alias t := test
-[default]
-test *ARGS:
-    just build "debug"
-    just test-run "debug" {{ ARGS }}
-
-    just build "release"
-    just test-run "release" {{ ARGS }}
-
-test-run BUILD_MODE="debug" *ARGS:
-    ./build/{{ BUILD_MODE }}/{{ CXX }}/tests/tests {{ ARGS }}
-
 alias b := build
+alias h := help
+alias f := fmt
 
 [working-directory("./subjects/mata/")]
 build-mata BUILD_MODE="release":
@@ -28,25 +18,52 @@ build-mata BUILD_MODE="release":
 build-harnesses:
     sh ./harnesses/automata-program-parser/build.sh
 
-build BUILD_MODE="release": (build-mata BUILD_MODE) build-harnesses
-    pwd
+[working-directory("./harnesses/pycobench/")]
+setup-python:
+    uv sync
 
-wip BUILD_DIR BUILD_MODE="debug" *ARGS:
-    make {{ BUILD_MODE }} BUILD_DIR="build/{{ BUILD_DIR }}/{{ CXX }}"
-    ./build/{{ BUILD_DIR }}/{{ CXX }}/tests/tests {{ ARGS }}
+# Builds the mata library + interpreters, and syncs pycobench's Python environment.
+# This is everything needed before running the benchmarks (see `run_all.sh`/`just smoke-test`).
+build BUILD_MODE="release": (build-mata BUILD_MODE) build-harnesses setup-python
 
-alias tp := test-python
-[working-directory("bindings/python/")]
-test-python:
-    # source .venv/bin/activate.fish &&
-    make -j {{ JOBS }} BUILD_DIR=build/bindings/python
-    make -j {{ JOBS }} test
-    ../../run_papermill_examples.sh
-    # ; deactivate
+alias setup := build
 
-alias vc := valgrind-callgrind
-valgrind-callgrind +ARGS:
-    valgrind --tool=callgrind {{ ARGS }}
+# Installs system-level build dependencies (compiler, cmake, uv) on Debian/Ubuntu or macOS.
+# On any other system, install these manually: a C++20 compiler, cmake, make, and uv
+# (https://docs.astral.sh/uv/getting-started/installation/).
+bootstrap:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    case "$(uname -s)" in
+      Linux)
+        if command -v apt-get >/dev/null; then
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake curl
+        else
+          echo "error: no apt-get found; install a C++20 compiler, cmake and make manually" >&2
+          exit 1
+        fi
+        ;;
+      Darwin)
+        if ! command -v brew >/dev/null; then
+          echo "error: Homebrew not found; install it from https://brew.sh first" >&2
+          exit 1
+        fi
+        brew install cmake
+        ;;
+      *)
+        echo "error: unsupported OS $(uname -s); install a C++20 compiler, cmake and make manually" >&2
+        exit 1
+        ;;
+    esac
+    if ! command -v uv >/dev/null; then
+      curl -LsSf https://astral.sh/uv/install.sh | sh
+    fi
+
+# Runs a quick, low-timeout pass of the regexps_union determinize-minimize benchmark
+# to sanity-check that the pipeline (mata binary + pycobench + Python env) works end to end.
+smoke-test:
+    ./run_all.sh --test-run -y --regexps_union-determinize-minimize
 
 alias c := clean
 clean:
@@ -58,19 +75,8 @@ release: (build "release")
 alias rd := release-debuginfo
 release-debuginfo: (build "release-debuginfo")
 
-alias d := docs
-docs:
-    make docs BUILD_DIR="build/debug/{{ CXX }}"
-    make -C docs/ html
-
-# TODO: Implement.
-ci:
-    @! echo "Unimplemented"
-
-alias h := help
 help:
     just --list --justfile {{ justfile() }}
 
-alias f := fmt
 fmt:
     nix fmt
