@@ -18,3 +18,36 @@ an input program that specifies sequence of automata operation (and executes
 them in order; e.g., load automaton `A`; load automaton `B`; create
 intersection of `A` and `B`).
 
+## Setup
+
+This repo uses git submodules; clone (or fix up an existing clone) with:
+
+```shell
+git clone --recurse-submodules <url>
+# or, in an existing clone:
+git submodule update --init --recursive
+```
+
+Everything is driven through [`just`](https://github.com/casey/just) recipes
+(`just --list`), so the same commands work whether or not you use Nix:
+
+* **With Nix**: `nix develop` (or let direnv do it via `.envrc`) gives you a
+  shell with the C++ toolchain, `just` and `uv` already on `PATH`. The same
+  operations are also exposed directly as `nix run .#<name>` (e.g.
+  `nix run .#build`, `nix run .#smoke-test`) -- these just run the matching
+  `just` recipe inside the flake's own devShell.
+* **Without Nix** (Linux or macOS): run `just bootstrap` once to install the
+  system dependencies (a C++20 compiler, cmake, and `uv`), then proceed as below.
+
+Either way:
+
+```shell
+just build        # builds mata + the interpreters, and syncs pycobench's Python env
+just smoke-test    # quick sanity check that the pipeline works end to end
+./run_all.sh --help
+```
+
+`harnesses/pycobench` is itself an independent project (its own git
+repository, `pyproject.toml`/`uv.lock`, and `flake.nix`) and can be built and
+run on its own -- see `harnesses/pycobench/README.md`.
+
