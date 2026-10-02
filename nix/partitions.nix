@@ -21,6 +21,7 @@
           ./shells.nix
           ./treefmt.nix
           ./utils.nix
+          ./apps.nix
         ];
       };
   };
