@@ -92,3 +92,7 @@ tests-integration/results/*.output
 .envrc.private
 
 /bin/
+
+# Unresolved benchmark data of unknown provenance -- see project history/notes.
+# TODO: either register as a proper submodule once the source repo is confirmed, or delete.
+/benchmarks/benchmarks-automatalib/
