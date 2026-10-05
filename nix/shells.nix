@@ -47,6 +47,9 @@
                     btop
                     just
                     uv
+                    # uv cannot run its own downloaded CPython on NixOS, so the
+                    # per-revision venvs are created from this interpreter.
+                    python3
                     yazi
                     helix
 
