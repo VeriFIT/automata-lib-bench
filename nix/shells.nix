@@ -23,7 +23,12 @@
               {
                 name = "mata-${compiler}-dev";
 
-                LD_LIBRARY_PATH = lib.makeLibraryPath [ pkgs.stdenv.cc.cc ];
+                # uv-installed wheels (numpy, used by pycobench's compare_profiles)
+                # link against libz at runtime.
+                LD_LIBRARY_PATH = lib.makeLibraryPath [
+                  pkgs.stdenv.cc.cc
+                  pkgs.zlib
+                ];
 
                 inputsFrom =
                   with inputs.self.packages.${pkgs.stdenv.hostPlatform.system};
@@ -42,8 +47,8 @@
                     btop
                     just
                     uv
-		    yazi
- 		    helix
+                    yazi
+                    helix
 
                     # git
                     # coreutils
