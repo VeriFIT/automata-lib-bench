@@ -47,29 +47,45 @@ just smoke-test    # quick sanity check that the pipeline works end to end
 ./run_all.sh --help
 ```
 
-## Comparing several versions of a library
+## Comparing tools and versions
 
-To measure two or more revisions of a subject (any mix of tags, branches and
-commits that exist in `subjects/<tool>`) against each other:
+One run can measure several tools and several of their revisions against each
+other. Every build is given as `<tool>:<rev>[,<rev>...]`, where the revisions
+are any mix of tags, branches and commits present in the tool's subject
+repository; a bare revision is taken as a revision of `mata`.
 
 ```shell
-just compare emp-programs/determinize.emp inputs/bench-regexps_union.input v1.32.32 devel
-# or, with more control:
+# three revisions of mata
+just compare emp-programs/determinize.emp inputs/bench-regexps_union.input v1.32.32 devel 073777da
+
+# the C++ library against the Python bindings, two revisions each
+just compare emp-programs/determinize.emp inputs/bench-regexps_union.input \
+    mata:v1.32.32,devel pymata:v1.32.32,devel
+
+# or, with more control
 ./scripts/compare_versions.sh --program emp-programs/determinize.emp \
-    --input inputs/bench-regexps_union.input --timeout 10 --output-dir my-run v1.32.32 devel
+    --input inputs/bench-regexps_union.input --timeout 10 --output-dir my-run \
+    mata:devel pymata:devel
 ```
 
-Each revision is checked out into its own git worktree under
-`build/versions/<subject>/<rev>/`, built, and linked into its own interpreter
-(`bin/emp-interpreter-<subject>-<rev>`); since `libmata` is a static library,
-each binary contains that revision in full and nothing is installed
-system-wide. The revisions are then registered as separate pycobench methods,
-so one run measures all of them on identical inputs and the final table
-compares them column by column.
+`just tools` lists the known tools:
 
-Binaries are reused across runs; pass `--force` to rebuild. `--subject` selects
-a different tool than `subjects/mata` (the per-tool build step lives in
-`scripts/build_version.sh`).
+| tool | subject | what it runs |
+| ---- | ------- | ------------ |
+| `mata` | `subjects/mata` | the C++ interpreter linked against that revision's `libmata` |
+| `pymata` | `subjects/mata` | `pyinterpret`'s `MataEngine` on that revision's Python bindings |
+
+Each revision of a subject is checked out once into its own git worktree under
+`build/versions/<subject>/<rev>/src`, and each tool builds from there into its
+own directory, producing `bin/<tool>-<rev>`. Because `libmata` is a static
+library and the Python bindings live in a per-revision virtualenv, every binary
+carries its own revision and nothing is installed system-wide. The builds are
+then registered as separate pycobench methods, so one run measures all of them
+on identical inputs and the final table compares them column by column.
+
+Binaries are reused across runs; pass `--force` to rebuild. A new tool is added
+by listing it in `tool_subject()` and writing a matching `_build_<tool>`
+function in `scripts/build_version.sh`.
 
 `harnesses/pycobench` is itself an independent project (its own git
 repository, `pyproject.toml`/`uv.lock`, and `flake.nix`) and can be built and

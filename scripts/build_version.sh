@@ -1,18 +1,19 @@
 #!/usr/bin/env bash
 
-# Builds the emp interpreter against one specific revision of a tool.
+# Builds one tool at one revision into a self-contained benchmark binary.
 #
-# Every revision gets its own git worktree, build tree and install prefix under
-# 'build/versions/<subject>/<slug>/', so several revisions coexist without
-# clobbering each other. When the subject library is static, the resulting
-# binary contains that revision in full -- nothing is installed system-wide
-# and the binaries can be benchmarked against each other side by side.
+# A "tool" is a way of running .emp programs (an interpreter), and it names the
+# subject repository it is built from. Several tools can share a subject: both
+# 'mata' and 'pymata' are built from 'subjects/mata', the first linking the C++
+# library, the second installing that revision's Python bindings.
 #
-# This script auto-detects the build method:
-# - If <subject-repo> is 'subjects/mata', uses mata's build system
-# - Can be extended for other subjects (VATA, Awali, etc.) by adding more cases
+# Each revision of a subject is checked out once into its own git worktree under
+# 'build/versions/<subject>/<rev>/src' and every tool builds from there into its
+# own directory, so revisions and tools never clobber each other.
 #
-# Result: bin/emp-interpreter-<subject>-<slug>
+# Result: bin/<tool>-<rev>
+#
+# Adding a tool: add it to tool_subject() and write a _build_<tool> function.
 
 set -euo pipefail
 
@@ -23,30 +24,89 @@ die() {
 
 usage() { {
         [ $# -gt 0 ] && echo "error: $1"
-        echo "usage: ./scripts/build_version.sh [opts] <subject-repo> <rev> [slug]"
-        echo "  <subject-repo>              path to subject repo (e.g., subjects/mata)"
-        echo "  <rev>                       any revision (tag, branch, commit)"
-        echo "  [slug]                      name slug for the binary; defaults to <rev>"
+        echo "usage: ./scripts/build_version.sh [opts] <tool> <rev> [slug]"
+        echo "  <tool>                      tool to build (see --list-tools)"
+        echo "  <rev>                       any revision of the tool's subject (tag, branch, commit)"
+        echo "  [slug]                      name of the built binary; defaults to <rev>"
         echo "options:"
+        echo "  -l|--list-tools             list the known tools and their subjects"
         echo "  -f|--force                  rebuild even if the binary already exists"
         echo "  -b|--build-mode <mode>      Release (default), RelWithDebInfo, Debug"
     } >&2
 }
 
-# Build libmata (and install headers + config files for the harness to discover).
-_build_mata() {
-    local worktree=$1 build=$2 prefix=$3 build_mode=$4 jobs=$5
+# === Tool registry ===
 
-    # Only the library is needed; examples and tests would cost build time.
+# Subject repository each tool is built from.
+tool_subject() {
+    case "$1" in
+        mata | pymata) echo "subjects/mata" ;;
+        *) return 1 ;;
+    esac
+}
+
+known_tools() {
+    echo "mata pymata"
+}
+
+# C++ interpreter linked against libmata of the given revision.
+#
+# libmata is a static library that also absorbs its 3rd-party objects, so the
+# resulting binary contains that revision in full and nothing has to be
+# installed system-wide.
+_build_mata() {
+    local worktree=$1 outdir=$2 binary=$3
+    local build="$outdir/mata-build" prefix="$outdir/prefix"
+    local harness_build="$outdir/harness-build"
+    local harness_src="$rootdir/harnesses/automata-program-parser"
+
+    # Only the library is needed; examples and tests would just cost build time.
     cmake -B "$build" -S "$worktree" \
         -DCMAKE_BUILD_TYPE="$build_mode" \
         -DCMAKE_INSTALL_PREFIX="$prefix" \
         -DBUILD_TESTING:BOOL=OFF \
         -DMATA_BUILD_EXAMPLES:BOOL=OFF
     cmake --build "$build" --parallel "$jobs" --target libmata
-    # Install merges mata's and 3rd-party headers into one include directory,
-    # which is what the harness' find_path() expects.
+    # Installing merges mata's and its 3rd-party headers into a single include
+    # directory, which is what the harness' find_path() expects.
     cmake --install "$build" >/dev/null
+
+    echo "======== Building the C++ interpreter ========"
+    # CMAKE_PREFIX_PATH makes the harness' find_library()/find_path() resolve to
+    # this revision rather than a system-wide or another revision's libmata.
+    cmake -B "$harness_build" -S "$harness_src" \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_PREFIX_PATH="$prefix"
+    cmake --build "$harness_build" --parallel "$jobs" --target mata-emp-interpreter
+    cp "$harness_build/src/cpp/mata-emp-interpreter" "$binary"
+}
+
+# Python interpreter (pyinterpret's MataEngine) on that revision's bindings.
+_build_pymata() {
+    local worktree=$1 outdir=$2 binary=$3
+    local venv="$outdir/venv"
+    local pyinterpret_src="$rootdir/harnesses/automata-program-parser/src/python"
+
+    command -v uv >/dev/null || die "uv not found; enter the dev shell or run 'just bootstrap'"
+    [ -d "$worktree/bindings/python" ] || die "revision has no Python bindings (bindings/python)"
+
+    rm -rf "$venv"
+    # uv's own downloaded CPython is dynamically linked against a generic Linux
+    # and does not run on NixOS, so build on the interpreter from the shell.
+    uv venv "$venv" --python "$(command -v python3)" >/dev/null
+    VIRTUAL_ENV="$venv" uv pip install "$worktree/bindings/python"
+    # --no-deps keeps the just-built libmata: pyinterpret depends on
+    # 'libmata>=1.0.0' and older revisions would be replaced from PyPI.
+    VIRTUAL_ENV="$venv" uv pip install --no-deps "$pyinterpret_src"
+    VIRTUAL_ENV="$venv" uv pip install automata-lib fado
+
+    # Wrapper so that every tool is invoked uniformly as '<binary> <prog.emp> <args>'.
+    cat > "$binary" <<EOF
+#!/usr/bin/env bash
+# Generated by scripts/build_version.sh -- pyinterpret on mata's bindings.
+exec "$venv/bin/pyinterpret" MataEngine "\$@"
+EOF
+    chmod +x "$binary"
 }
 
 # === Main ===
@@ -58,6 +118,11 @@ while [ $# -gt 0 ]; do
     case "$1" in
         -h|--help)
             usage
+            exit 0;;
+        -l|--list-tools)
+            for t in $(known_tools); do
+                printf '%-10s %s\n' "$t" "$(tool_subject "$t")"
+            done
             exit 0;;
         -f|--force)
             force=true
@@ -74,43 +139,39 @@ while [ $# -gt 0 ]; do
     esac
 done
 
-[ ${#args[@]} -ge 2 ] || { usage "missing subject or revision"; exit 1; }
-subject_repo="${args[0]}"
+[ ${#args[@]} -ge 2 ] || { usage "missing tool or revision"; exit 1; }
+tool="${args[0]}"
 rev="${args[1]}"
 slug="${args[2]:-$rev}"
-# '/' would turn branch names like 'origin/devel' into directories
+# '/' would turn branch names such as 'origin/devel' into directories
 slug="${slug//\//-}"
 
-rootdir=$(cd "$(dirname "$0")/.." && pwd)
-subject_name=$(basename "$subject_repo")
-subject_abs=$(realpath "$rootdir/$subject_repo" 2>/dev/null) ||
-    die "subject repo not found: $subject_repo"
+subject=$(tool_subject "$tool") || die "unknown tool '$tool' (known: $(known_tools))"
 
-harness_src="$rootdir/harnesses/automata-program-parser"
-version_dir="$rootdir/build/versions/$subject_name/$slug"
-worktree="$version_dir/src"
-subject_build="$version_dir/build"
-prefix="$version_dir/prefix"
+rootdir=$(cd "$(dirname "$0")/.." && pwd)
+subject_name=$(basename "$subject")
+subject_abs="$rootdir/$subject"
 jobs="${JOBS:-$(nproc 2>/dev/null || echo 4)}"
 
-[ -e "$subject_abs/.git" ] || die "$subject_repo: not a git repository"
-[ -e "$harness_src/CMakeLists.txt" ] || die "harness not initialised; run 'git submodule update --init --recursive'"
+version_dir="$rootdir/build/versions/$subject_name/$slug"
+worktree="$version_dir/src"
+outdir="$version_dir/$tool"
+binary="$rootdir/bin/$tool-$slug"
+
+[ -e "$subject_abs/.git" ] || die "$subject not initialised; run 'git submodule update --init --recursive'"
 
 commit=$(git -C "$subject_abs" rev-parse --verify --quiet "$rev^{commit}") ||
-    die "$subject_repo: unknown revision '$rev'"
-
-binary_name="emp-interpreter-$subject_name-$slug"
-binary="$rootdir/bin/$binary_name"
+    die "$subject: unknown revision '$rev'"
 
 if [ -x "$binary" ] && [ "$force" = false ]; then
-    echo "[!] $subject_name/$slug: already built ($binary); use --force to rebuild"
+    echo "[!] $tool/$slug: already built ($binary); use --force to rebuild"
     exit 0
 fi
 
-echo "========== Building $subject_name '$slug' ($commit) ==========="
-mkdir -p "$version_dir" "$rootdir/bin"
+echo "========== Building $tool '$slug' ($commit) =========="
+mkdir -p "$outdir" "$rootdir/bin"
 
-# Check out the revision into a worktree.
+# One checkout per revision, shared by every tool built from this subject.
 if [ -e "$worktree/.git" ]; then
     git -C "$worktree" checkout --detach --force "$commit"
 else
@@ -118,21 +179,7 @@ else
     git -C "$subject_abs" worktree add --detach "$worktree" "$commit"
 fi
 
-# Subject-specific build. This can be extended for VATA, Awali, etc.
-if [ "$subject_name" = "mata" ]; then
-    _build_mata "$worktree" "$subject_build" "$prefix" "$build_mode" "$jobs"
-else
-    die "unsupported subject: $subject_name (only 'mata' is implemented)"
-fi
+"_build_$tool" "$worktree" "$outdir" "$binary"
 
-# Build the harness (interpreter) against this version of the subject.
-echo "======== Building harness for $subject_name '$slug' ========"
-harness_build="$version_dir/harness-build"
-cmake -B "$harness_build" -S "$harness_src" \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_PREFIX_PATH="$prefix"
-cmake --build "$harness_build" --parallel "$jobs" --target mata-emp-interpreter
-
-cp "$harness_build/src/cpp/mata-emp-interpreter" "$binary"
 echo "$commit" > "$version_dir/COMMIT"
 echo "[done] $binary ($(git -C "$worktree" describe --tags --always))"

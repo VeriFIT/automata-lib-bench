@@ -65,15 +65,19 @@ bootstrap:
 smoke-test:
     ./run_all.sh --test-run -y --regexps_union-determinize-minimize
 
-# Builds the emp interpreter for one revision of a subject (tag, branch or commit),
-# into bin/emp-interpreter-<subject>-<rev>.
-build-version REV SUBJECT="subjects/mata":
-    ./scripts/build_version.sh {{ SUBJECT }} {{ REV }}
+# Builds one tool at one revision (tag, branch or commit) into bin/<tool>-<rev>.
+build-version REV TOOL="mata":
+    ./scripts/build_version.sh {{ TOOL }} {{ REV }}
 
-# Benchmarks two or more revisions of a subject against each other on the same inputs.
-# Example: just compare emp-programs/determinize.emp inputs/bench-regexps_union.input v1.32.32 devel
-compare PROGRAM INPUT +REVS:
-    ./scripts/compare_versions.sh --program {{ PROGRAM }} --input {{ INPUT }} {{ REVS }}
+# Lists the tools that can be benchmarked and the subject repo each is built from.
+tools:
+    ./scripts/build_version.sh --list-tools
+
+# Benchmarks several tools and/or revisions against each other on the same inputs.
+# Specs are '<tool>:<rev>,<rev>' or a bare <rev> of mata.
+# Example: just compare emp-programs/determinize.emp inputs/bench-regexps_union.input mata:v1.32.32,devel pymata:devel
+compare PROGRAM INPUT +SPECS:
+    ./scripts/compare_versions.sh --program {{ PROGRAM }} --input {{ INPUT }} {{ SPECS }}
 
 alias c := clean
 clean:
