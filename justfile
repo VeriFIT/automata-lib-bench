@@ -65,6 +65,16 @@ bootstrap:
 smoke-test:
     ./run_all.sh --test-run -y --regexps_union-determinize-minimize
 
+# Builds the emp interpreter for one revision of a subject (tag, branch or commit),
+# into bin/emp-interpreter-<subject>-<rev>.
+build-version REV SUBJECT="subjects/mata":
+    ./scripts/build_version.sh {{ SUBJECT }} {{ REV }}
+
+# Benchmarks two or more revisions of a subject against each other on the same inputs.
+# Example: just compare emp-programs/determinize.emp inputs/bench-regexps_union.input v1.32.32 devel
+compare PROGRAM INPUT +REVS:
+    ./scripts/compare_versions.sh --program {{ PROGRAM }} --input {{ INPUT }} {{ REVS }}
+
 alias c := clean
 clean:
     make clean

@@ -47,6 +47,30 @@ just smoke-test    # quick sanity check that the pipeline works end to end
 ./run_all.sh --help
 ```
 
+## Comparing several versions of a library
+
+To measure two or more revisions of a subject (any mix of tags, branches and
+commits that exist in `subjects/<tool>`) against each other:
+
+```shell
+just compare emp-programs/determinize.emp inputs/bench-regexps_union.input v1.32.32 devel
+# or, with more control:
+./scripts/compare_versions.sh --program emp-programs/determinize.emp \
+    --input inputs/bench-regexps_union.input --timeout 10 --output-dir my-run v1.32.32 devel
+```
+
+Each revision is checked out into its own git worktree under
+`build/versions/<subject>/<rev>/`, built, and linked into its own interpreter
+(`bin/emp-interpreter-<subject>-<rev>`); since `libmata` is a static library,
+each binary contains that revision in full and nothing is installed
+system-wide. The revisions are then registered as separate pycobench methods,
+so one run measures all of them on identical inputs and the final table
+compares them column by column.
+
+Binaries are reused across runs; pass `--force` to rebuild. `--subject` selects
+a different tool than `subjects/mata` (the per-tool build step lives in
+`scripts/build_version.sh`).
+
 `harnesses/pycobench` is itself an independent project (its own git
 repository, `pyproject.toml`/`uv.lock`, and `flake.nix`) and can be built and
 run on its own -- see `harnesses/pycobench/README.md`.
