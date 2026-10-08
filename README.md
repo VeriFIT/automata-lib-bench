@@ -52,10 +52,14 @@ just smoke-test    # quick sanity check that the pipeline works end to end
 One run can measure several tools and several of their revisions against each
 other. Every build is given as `<tool>:<rev>[=<label>][,<rev>...]`, where the
 revisions are any mix of tags, branches and commits present in the tool's
-subject repository; a bare revision is taken as a revision of `mata`, and the
-optional `=<label>` is what the build is called in the result table, the tables
-and the plots. The first build listed is the baseline the others are compared
-against.
+subject repository; a bare revision is taken as a revision of `mata`. Without
+`=<label>` the build is named after the revision itself. The first build listed
+is the baseline the others are compared against.
+
+`pr/<N>` is a revision of its own: it stands for GitHub pull request `N` and
+expands into the two builds the pull request is about, `<label>-base` (the
+commit it branched off) and `<label>-head` (its tip). Both are fetched from the
+subject's remote, so the pull request does not have to be checked out.
 
 ```shell
 # three revisions of mata
@@ -63,6 +67,9 @@ just compare emp-programs/determinize.emp inputs/bench-regexps_union.input v1.32
 
 # one commit against its parent, under readable names
 just compare emp-programs/words_of_lengths-10.emp inputs/bench-regexps_union.input 24a00cf0^=before 24a00cf0=after
+
+# a pull request against the commit it branched off
+just compare emp-programs/automata_inclusion.emp inputs/bench-double-automata-inclusion.input pr/885=antichain
 
 # the C++ library against the Python bindings, two revisions each
 just compare emp-programs/determinize.emp inputs/bench-regexps_union.input \
