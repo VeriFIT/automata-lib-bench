@@ -10,11 +10,17 @@
 #
 # Pairs are given as '<tool>:<rev>[,<rev>...]'; a bare revision list is taken as
 # revisions of 'mata'. Revisions are any mix of tags, branches and commits that
-# exist in the tool's subject repository.
+# exist in the tool's subject repository, and '<rev>=<label>' names the build
+# something shorter than a commit hash in the tables and plots.
+#
+# The run ends in its own directory under 'results/data', holding the .csv, the
+# summary and pairwise tables, and the scatter and cactus plots.
 #
 # Examples:
 #   # three revisions of mata
 #   ./scripts/compare_versions.sh v1.32.32 devel 073777da
+#   # one commit against its parent, under readable names
+#   ./scripts/compare_versions.sh 24a00cf0=after 24a00cf0^=before
 #   # the C++ library against the Python bindings, two revisions each
 #   ./scripts/compare_versions.sh mata:v1.32.32,devel pymata:v1.32.32,devel
 
@@ -28,26 +34,30 @@ die() {
 usage() { {
         [ $# -gt 0 ] && echo "error: $1"
         echo "usage: ./scripts/compare_versions.sh [opts] <spec> [spec...]"
-        echo "  <spec>                      '<tool>:<rev>[,<rev>...]', or a bare <rev> of mata"
+        echo "  <spec>                      '<tool>:<rev>[=<label>][,...]', or a bare <rev> of mata"
         echo "options:"
         echo "  -p|--program <prog.emp>     program to run [default=emp-programs/determinize-minimize.emp]"
-        echo "  -i|--input <bench.input>    inputs to run on [default=inputs/bench-regexps_union.input]"
+        echo "  -i|--input <bench.input>    inputs to run on; repeatable, one .csv per file"
+        echo "                              [default=inputs/bench-regexps_union.input]"
         echo "  -t|--timeout <int>          timeout per benchmark in seconds [default=60]"
         echo "  -j|--jobs <int>             number of parallel jobs [default=6]"
-        echo "  -o|--output-dir <dir>       store results in 'results/data/<dir>'"
+        echo "  -o|--output-dir <dir>       store the run in 'results/data/<dir>'"
+        echo "                              [default=<program>-<timestamp>]"
         echo "  -f|--force                  rebuild the binaries even if they exist"
         echo "  -d|--test-run               only run the first input (quick pipeline check)"
+        echo "  -R|--no-report              skip the plots and tables"
         echo "  -l|--list-tools             list the known tools and their subjects"
     } >&2
 }
 
 program="emp-programs/determinize-minimize.emp"
-input="inputs/bench-regexps_union.input"
+inputs=()
 timeout=60
 jobs=6
 output_dir=""
 force=""
 testrun=""
+report=true
 specs=()
 
 rootdir=$(cd "$(dirname "$0")/.." && pwd)
@@ -63,7 +73,7 @@ while [ $# -gt 0 ]; do
             program="$2"
             shift 2;;
         -i|--input)
-            input="$2"
+            inputs+=( "$2" )
             shift 2;;
         -t|--timeout)
             timeout="$2"
@@ -80,6 +90,9 @@ while [ $# -gt 0 ]; do
         -d|--test-run)
             testrun="--test-run"
             shift 1;;
+        -R|--no-report)
+            report=false
+            shift 1;;
         -*)
             usage "unknown option: $1"
             exit 1;;
@@ -92,9 +105,10 @@ done
 [ ${#specs[@]} -ge 1 ] || { usage "need at least one '<tool>:<rev>,...' spec"; exit 1; }
 cd "$rootdir"
 
-# Expand the specs into parallel (tool, revision) arrays.
+# Expand the specs into parallel (tool, revision, label) arrays.
 tools=()
 revs=()
+labels=()
 for spec in "${specs[@]}"; do
     if [[ "$spec" == *:* ]]; then
         spec_tool="${spec%%:*}"
@@ -107,12 +121,18 @@ for spec in "${specs[@]}"; do
     subject=$(./scripts/build_version.sh --list-tools | awk -v t="$spec_tool" '$1 == t { print $2 }')
     [ -n "$subject" ] || die "unknown tool '$spec_tool' (see --list-tools)"
     IFS=',' read -r -a spec_rev_list <<< "$spec_revs"
-    for rev in "${spec_rev_list[@]}"; do
+    for entry in "${spec_rev_list[@]}"; do
+        # '<rev>=<label>' keeps commit hashes out of the column names and the plots.
+        rev="${entry%%=*}"
+        label="${entry#*=}"
+        if [ "$label" = "$entry" ]; then label="$rev"; fi
+        [ -n "$rev" ] || die "spec '$spec' lists an empty revision"
         # Fail before building anything, so typos do not surface minutes later.
         git -C "$subject" rev-parse --verify --quiet "$rev^{commit}" >/dev/null 2>&1 ||
             die "$spec_tool: revision '$rev' not found in $subject (try 'git -C $subject fetch --all --tags')"
         tools+=( "$spec_tool" )
         revs+=( "$rev" )
+        labels+=( "${label//\//-}" )
     done
 done
 
@@ -120,20 +140,29 @@ done
 
 # run_pyco.sh resolves the config and the inputs relative to the repository root
 program=$(realpath --relative-to="$rootdir" "$program") || die "no such program: $program"
-input=$(realpath --relative-to="$rootdir" "$input") || die "no such input file: $input"
 [ -f "$program" ] || die "no such program: $program"
-[ -f "$input" ] || die "no such input file: $input"
+
+[ ${#inputs[@]} -gt 0 ] || inputs=( "inputs/bench-regexps_union.input" )
+for i in "${!inputs[@]}"; do
+    inputs[$i]=$(realpath --relative-to="$rootdir" "${inputs[$i]}") || die "no such input file: ${inputs[$i]}"
+    [ -f "${inputs[$i]}" ] || die "no such input file: ${inputs[$i]}"
+done
+# Every input must feed the program the same number of automata.
+params=$(head -1 < "${inputs[0]}" | tr -cd ';' | wc -c)
+for input in "${inputs[@]}"; do
+    [ "$(head -1 < "$input" | tr -cd ';' | wc -c)" = "$params" ] ||
+        die "$input does not have the same number of columns as ${inputs[0]}"
+done
 
 methods=()
 for i in "${!tools[@]}"; do
-    ./scripts/build_version.sh ${force:+"$force"} "${tools[$i]}" "${revs[$i]}"
-    methods+=( "${tools[$i]}-${revs[$i]//\//-}" )
+    ./scripts/build_version.sh ${force:+"$force"} "${tools[$i]}" "${revs[$i]}" "${labels[$i]}"
+    methods+=( "${tools[$i]}-${labels[$i]}" )
 done
 
 # Inputs are ';'-delimited; every column becomes one argument of the program.
-params=$(( $(head -1 < "$input" | tr -cd ';' | wc -c) + 1 ))
 args=""
-for i in $(seq 1 "$params"); do
+for i in $(seq 1 $((params + 1))); do
     args+=" \$$i"
 done
 
@@ -143,7 +172,7 @@ mkdir -p "$config_dir"
 {
     echo "# Generated by scripts/compare_versions.sh -- regenerate, do not edit."
     echo "# program: $program"
-    echo "# inputs:  $input"
+    echo "# inputs:  ${inputs[*]}"
     for method in "${methods[@]}"; do
         echo
         echo "$method:"
@@ -151,8 +180,17 @@ mkdir -p "$config_dir"
     done
 } > "$config"
 
+# One directory per run keeps the .csv together with the report generated from it.
+program_name=$(basename "${program%.*}")
+: "${output_dir:=$program_name-$(date +%Y-%m-%d-%H-%M-%S)}"
+
 echo "[!] Comparing ${#methods[@]} builds: ${methods[*]}"
 echo "[!] Job config: $config"
+echo "[!] Results:    results/data/$output_dir"
 
-exec bash ./scripts/run_pyco.sh $testrun --config "$config" --timeout "$timeout" --jobs "$jobs" \
-    ${output_dir:+-s "$output_dir"} "$input"
+bash ./scripts/run_pyco.sh $testrun --config "$config" --timeout "$timeout" --jobs "$jobs" \
+    -s "$output_dir" "${inputs[@]}"
+
+[ "$report" = true ] || exit 0
+exec bash ./scripts/report.sh --timeout "$timeout" --baseline "${methods[0]}" \
+    --title "$program_name" "results/data/$output_dir"

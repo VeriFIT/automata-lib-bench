@@ -73,11 +73,17 @@ build-version REV TOOL="mata":
 tools:
     ./scripts/build_version.sh --list-tools
 
-# Benchmarks several tools and/or revisions against each other on the same inputs.
-# Specs are '<tool>:<rev>,<rev>' or a bare <rev> of mata.
-# Example: just compare emp-programs/determinize.emp inputs/bench-regexps_union.input mata:v1.32.32,devel pymata:devel
+# Benchmarks several tools and/or revisions against each other on the same inputs,
+# and writes the tables and plots comparing them next to the measurements.
+# Specs are '<tool>:<rev>[=<label>],...' or a bare <rev> of mata; the first one is the baseline.
+# Example: just compare emp-programs/words_of_lengths-10.emp inputs/bench-regexps_union.input 24a00cf0^=before 24a00cf0=after
 compare PROGRAM INPUT +SPECS:
     ./scripts/compare_versions.sh --program {{ PROGRAM }} --input {{ INPUT }} {{ SPECS }}
+
+# Regenerates the tables and plots of a finished run (a results/data/<dir>, or a single .csv).
+# Example: just report results/data/words_of_lengths-10-2026-10-08-14-00-00 --metric words_of_lengths
+report RUN *OPTS:
+    ./scripts/report.sh {{ OPTS }} {{ RUN }}
 
 alias c := clean
 clean:
