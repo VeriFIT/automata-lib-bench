@@ -13,6 +13,10 @@
 # exist in the tool's subject repository, and '<rev>=<label>' names the build
 # something shorter than a commit hash in the tables and plots.
 #
+# 'pr/<N>' stands for GitHub pull request N and expands to the two builds it is
+# about: the commit it is based on and its tip, labelled '<label>-base' and
+# '<label>-head'. Both are fetched from the subject's remote.
+#
 # The run ends in its own directory under 'results/data', holding the .csv, the
 # summary and pairwise tables, and the scatter and cactus plots.
 #
@@ -21,6 +25,8 @@
 #   ./scripts/compare_versions.sh v1.32.32 devel 073777da
 #   # one commit against its parent, under readable names
 #   ./scripts/compare_versions.sh 24a00cf0=after 24a00cf0^=before
+#   # a pull request against what it branched off
+#   ./scripts/compare_versions.sh pr/885=antichain
 #   # the C++ library against the Python bindings, two revisions each
 #   ./scripts/compare_versions.sh mata:v1.32.32,devel pymata:v1.32.32,devel
 
@@ -35,6 +41,7 @@ usage() { {
         [ $# -gt 0 ] && echo "error: $1"
         echo "usage: ./scripts/compare_versions.sh [opts] <spec> [spec...]"
         echo "  <spec>                      '<tool>:<rev>[=<label>][,...]', or a bare <rev> of mata"
+        echo "                              <rev> may be 'pr/<N>': the base and the tip of pull request N"
         echo "options:"
         echo "  -p|--program <prog.emp>     program to run [default=emp-programs/determinize-minimize.emp]"
         echo "  -i|--input <bench.input>    inputs to run on; repeatable, one .csv per file"
@@ -105,6 +112,26 @@ done
 [ ${#specs[@]} -ge 1 ] || { usage "need at least one '<tool>:<rev>,...' spec"; exit 1; }
 cd "$rootdir"
 
+# Resolves 'pr/<N>' of a GitHub pull request into the commits it compares. Both
+# are fetched into the subject, because the head lives in a 'pull/<N>/head' ref
+# that a plain clone does not have and the base may be newer than the last fetch.
+pr_commits() {
+    local subject=$1 number=$2 remote base head
+    command -v gh >/dev/null || die "resolving 'pr/$number' needs the 'gh' CLI"
+    remote=$(git -C "$subject" remote | grep -x origin || git -C "$subject" remote | head -1)
+    [ -n "$remote" ] || die "$subject has no remote to resolve 'pr/$number' against"
+    local slug
+    slug=$(git -C "$subject" remote get-url "$remote" |
+        sed -E 's#^(git@[^:]+:|https?://[^/]+/)##; s#\.git$##')
+    read -r base head < <(
+        gh api "repos/$slug/pulls/$number" --jq '"\(.base.sha) \(.head.sha)"'
+    ) || die "could not read pull request $number of $slug"
+    git -C "$subject" fetch --quiet "$remote" "+refs/pull/$number/head:refs/remotes/$remote/pr/$number" ||
+        die "could not fetch pull request $number of $slug"
+    git -C "$subject" fetch --quiet "$remote" "$base" 2>/dev/null || true
+    echo "$base $head"
+}
+
 # Expand the specs into parallel (tool, revision, label) arrays.
 tools=()
 revs=()
@@ -121,18 +148,35 @@ for spec in "${specs[@]}"; do
     subject=$(./scripts/build_version.sh --list-tools | awk -v t="$spec_tool" '$1 == t { print $2 }')
     [ -n "$subject" ] || die "unknown tool '$spec_tool' (see --list-tools)"
     IFS=',' read -r -a spec_rev_list <<< "$spec_revs"
+    entries=()
     for entry in "${spec_rev_list[@]}"; do
-        # '<rev>=<label>' keeps commit hashes out of the column names and the plots.
+        # Without '<rev>=<label>' the revision names itself: the tag, branch,
+        # commit or pull request as it was written on the command line.
         rev="${entry%%=*}"
         label="${entry#*=}"
         if [ "$label" = "$entry" ]; then label="$rev"; fi
+        # 'pr/<N>' is the one revision that stands for two: what the pull request
+        # changes and what it is measured against.
+        if [[ "$rev" =~ ^pr/([0-9]+)$ ]]; then
+            [ "$label" != "$rev" ] || label="pr${BASH_REMATCH[1]}"
+            read -r pr_base pr_head < <(pr_commits "$subject" "${BASH_REMATCH[1]}")
+            entries+=( "$pr_base=$label-base" "$pr_head=$label-head" )
+        else
+            entries+=( "$rev=$label" )
+        fi
+    done
+    for entry in "${entries[@]}"; do
+        rev="${entry%%=*}"
+        label="${entry#*=}"
         [ -n "$rev" ] || die "spec '$spec' lists an empty revision"
         # Fail before building anything, so typos do not surface minutes later.
         git -C "$subject" rev-parse --verify --quiet "$rev^{commit}" >/dev/null 2>&1 ||
             die "$spec_tool: revision '$rev' not found in $subject (try 'git -C $subject fetch --all --tags')"
         tools+=( "$spec_tool" )
         revs+=( "$rev" )
-        labels+=( "${label//\//-}" )
+        # The label ends up in column names, file names and plot legends, so
+        # everything a revision may contain ('/', '^', '~', ':') is folded away.
+        labels+=( "$(printf '%s' "$label" | tr -cs 'A-Za-z0-9._-' '-' | sed -E 's/-+$//')" )
     done
 done
 
