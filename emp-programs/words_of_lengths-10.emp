@@ -1,0 +1,5 @@
+# Is there an accepted word of length 10?
+# The automaton is read as a one-tape transducer, so 'words_of_lengths' takes
+# exactly one length; an n-tape NFT would take n of them.
+load_automaton aut1
+words_of_lengths aut1 10
