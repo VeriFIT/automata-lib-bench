@@ -48,8 +48,10 @@
                     just
                     uv
                     # uv cannot run its own downloaded CPython on NixOS, so the
-                    # per-revision venvs are created from this interpreter.
+                    # per-revision venvs are created from the interpreters here.
+                    # pycobench needs >= 3.14; the mata bindings build on python3.
                     python3
+                    python314
                     yazi
                     helix
 

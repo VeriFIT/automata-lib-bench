@@ -71,7 +71,8 @@
       "inputs": {
         "flake-parts": "flake-parts",
         "flake-utils": "flake-utils",
-        "nixpkgs": "nixpkgs"
+        "nixpkgs": "nixpkgs",
+        "tools-mata": "tools-mata"
       }
     },
     "systems": {
@@ -87,6 +88,31 @@
         "owner": "nix-systems",
         "repo": "default",
         "type": "github"
+      }
+    },
+    "tools-mata": {
+      "inputs": {
+        "flake-parts": [
+          "flake-parts"
+        ],
+        "flake-utils": [
+          "flake-utils"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1791360916,
+        "narHash": "sha256-DcymeSPKkV3iRCuqr0GhQ4a0y4bwfLKYL5WwEhwIseU=",
+        "rev": "02b0eb7d7cb2dbfb2a14c916b41ff1777f69bedf",
+        "revCount": 3323,
+        "type": "git",
+        "url": "file:./subjects/mata"
+      },
+      "original": {
+        "type": "git",
+        "url": "file:./subjects/mata"
       }
     }
   },
