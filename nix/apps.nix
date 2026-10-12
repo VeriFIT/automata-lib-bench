@@ -27,6 +27,7 @@
         build = justApp "build";
         setup-python = justApp "setup-python";
         smoke-test = justApp "smoke-test";
+        clean = justApp "clean";
         default = justApp "build";
 
         # Generic escape hatch: `nix run .#just -- <recipe> [args...]`.

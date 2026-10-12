@@ -105,7 +105,9 @@ this repository and its harnesses, and the machine (CPU, governors, compiler).
 
 A build is reused while its label still resolves to the commit it was built
 from; a label that moved (`devel`, `HEAD`, a force-pushed pull request) is
-rebuilt.
+rebuilt. `just clean [days]` removes the builds not rebuilt for `days` days
+(default 30) together with their worktrees and binaries, and failed builds
+regardless of age; `just clean 30 --dry-run` lists them.
 
 `just tools` lists the known tools:
 

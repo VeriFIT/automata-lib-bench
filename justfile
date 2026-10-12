@@ -93,6 +93,11 @@ suite SUITE +ARGS:
 report RUN *OPTS:
     ./scripts/report.sh {{ OPTS }} {{ RUN }}
 
+# Removes the builds (worktree, build trees, binaries) not rebuilt for DAYS days.
+alias c := clean
+clean DAYS="30" *OPTS:
+    ./scripts/clean_versions.sh --older-than {{ DAYS }} {{ OPTS }}
+
 help:
     just --list --justfile {{ justfile() }}
 
