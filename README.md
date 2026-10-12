@@ -85,7 +85,15 @@ just compare emp-programs/determinize.emp inputs/bench-regexps_union.input \
 
 Each run gets its own directory `results/data/<run>/`, holding one `.csv` per
 input file and, next to each, a `<csv>-report/` directory with the tables and
-plots (see *Reporting* below).
+plots (see *Reporting* below). It also keeps what the run was made from: the
+generated pycobench job config, a copy of the `.emp` program, and
+`manifest.json`, which ties every build label to the commit it was built from
+and records the settings, the hashes of the program and inputs, the revisions of
+this repository and its harnesses, and the machine (CPU, governors, compiler).
+
+A build is reused while its label still resolves to the commit it was built
+from; a label that moved (`devel`, `HEAD`, a force-pushed pull request) is
+rebuilt.
 
 `just tools` lists the known tools:
 
