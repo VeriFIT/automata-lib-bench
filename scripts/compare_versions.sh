@@ -50,6 +50,11 @@ usage() { {
         echo "  -j|--jobs <int>             number of parallel jobs [default=6]"
         echo "  -o|--output-dir <dir>       store the run in 'results/data/<dir>'"
         echo "                              [default=<program>-<timestamp>]"
+        echo "  -r|--repeat <int>           measure every benchmark <int> times, keep the minimum"
+        echo "                              [default=1]"
+        echo "  -M|--memout <GB>            memory limit per benchmark [default=none]"
+        echo "     --no-pin                 let the workers float over all CPUs; by default worker"
+        echo "                              i is pinned to its own physical core (never CPU 0)"
         echo "  -f|--force                  rebuild the binaries even if they exist"
         echo "  -d|--test-run               only run the first input (quick pipeline check)"
         echo "  -R|--no-report              skip the plots and tables"
@@ -65,6 +70,9 @@ output_dir=""
 force=""
 testrun=""
 report=true
+repeat=1
+memout=""
+pin=true
 specs=()
 
 rootdir=$(cd "$(dirname "$0")/.." && pwd)
@@ -100,6 +108,15 @@ while [ $# -gt 0 ]; do
         -R|--no-report)
             report=false
             shift 1;;
+        -r|--repeat)
+            repeat="$2"
+            shift 2;;
+        -M|--memout)
+            memout="$2"
+            shift 2;;
+        --no-pin)
+            pin=false
+            shift 1;;
         -*)
             usage "unknown option: $1"
             exit 1;;
@@ -131,6 +148,31 @@ pr_commits() {
     git -C "$subject" fetch --quiet "$remote" "$base" 2>/dev/null || true
     echo "$base $head"
 }
+
+# Prints <n> CPUs, one per physical core, skipping the core of CPU 0 where the
+# kernel and interrupts tend to run, so that no two workers share a core's
+# caches and execution units.
+pinned_cpus() {
+    local n=$1 cores count
+    [ -d /sys/devices/system/cpu/cpu0/topology ] ||
+        die "pinning needs Linux CPU topology in /sys; pass --no-pin"
+    # The first CPU listed among a core's siblings stands for the core.
+    cores=$(cat /sys/devices/system/cpu/cpu[0-9]*/topology/thread_siblings_list |
+        sed -E 's/[,-].*//' | sort -nu | grep -vx 0 || true)
+    count=$(printf '%s\n' "$cores" | grep -c . || true)
+    [ "$count" -ge "$n" ] ||
+        die "--jobs $n exceeds the $count physical cores available for pinning; lower --jobs or pass --no-pin"
+    printf '%s\n' "$cores" | head -n "$n" | paste -sd' '
+}
+
+measure_opts=( --timeout "$timeout" --jobs "$jobs" --repeat "$repeat" )
+[ -z "$memout" ] || measure_opts+=( --memout "$memout" )
+cpus=""
+if [ "$pin" = true ]; then
+    cpus=$(pinned_cpus "$jobs")
+    echo "[!] Pinned to CPUs: $cpus"
+    measure_opts+=( --cpu-affinity "$cpus" )
+fi
 
 # Expand the specs into parallel (tool, revision, label) arrays.
 tools=()
@@ -255,7 +297,7 @@ echo "[!] Comparing ${#methods[@]} builds: ${methods[*]}"
 echo "[!] Job config: $config"
 echo "[!] Results:    results/data/$output_dir"
 
-bash ./scripts/run_pyco.sh ${testrun:+"$testrun"} --config "$config" --timeout "$timeout" --jobs "$jobs" \
+bash ./scripts/run_pyco.sh ${testrun:+"$testrun"} --config "$config" "${measure_opts[@]}" \
     -s "$output_dir" "${inputs[@]}"
 
 [ "$report" = true ] || exit 0

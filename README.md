@@ -110,6 +110,15 @@ function in `scripts/build_version.sh`.
 repository, `pyproject.toml`/`uv.lock`, and `flake.nix`) and can be built and
 run on its own -- see `harnesses/pycobench/README.md`.
 
+### Measurement noise
+
+By default every pycobench worker is pinned to a physical core of its own,
+never the core of CPU 0, so `--jobs` may not exceed the cores left; `--no-pin`
+lets the workers float. `--repeat <n>` measures every instance `n` times and
+keeps each cell's minimum (a cell that failed in any repeat stays failed); the
+per-repeat tables are kept in `<csv>-repeats/`. `--memout <GB>` caps the
+memory of every run, which is what fills the *memouts* column of the report.
+
 ## What is measured: `.emp` programs
 
 An experiment is a `.emp` program from `emp-programs/` run on every automaton
