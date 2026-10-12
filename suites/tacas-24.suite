@@ -1,0 +1,21 @@
+# The experiments of the TACAS'24 paper, run by scripts/run_suite.sh.
+#
+# <name> <program.emp, or - when the input names it> <input> [compare_versions options]
+#
+# Options given here override those on the command line.
+
+armc-incl                    emp-programs/automata_inclusion.emp        inputs/bench-double-automata-inclusion.input
+b-smt                        -                                          inputs/bench-variadic-bool-comb-ere.input
+email-filter                 emp-programs/email_filter.emp              inputs/bench-quintuple-email-filter.input --jobs 1
+lia-explicit                 emp-programs/complement.emp                inputs/bench-single-presburger-explicit-complement.input
+lia-symbolic                 emp-programs/complement.emp                inputs/bench-single-presburger-complement.input
+regexps-union-det-min        emp-programs/determinize-minimize.emp      inputs/bench-regexps_union.input
+noodler-compl                emp-programs/complement.emp                inputs/bench-single-z3-noodler.input
+noodler-compl-big            emp-programs/complement.emp                inputs/bench-single-z3-noodler-big.input
+noodler-concat               emp-programs/concat.emp                    inputs/bench-single-z3-noodler.input
+noodler-inter                emp-programs/bool_comb_intersect.emp       inputs/bench-variadic-z3-noodler-intersect.input
+param-inter                  emp-programs/bool_comb_inter_sat.emp       inputs/bench-double-bool-comb-cox.input
+param-inter-variadic         emp-programs/bool_comb_intersect.emp       inputs/bench-variadic-bool-comb-intersect.input
+param-union                  emp-programs/bool_comb_union.emp           inputs/bench-double-bool-comb-cox.input
+param-union-variadic         emp-programs/bool_comb_intersect_union.emp inputs/bench-variadic-bool-comb-intersect.input
+param-diff                   emp-programs/bool_comb_diff_sat.emp        inputs/bench-double-bool-comb-cox.input

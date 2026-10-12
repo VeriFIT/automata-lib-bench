@@ -1,32 +1,33 @@
 #!/usr/bin/env -S just --justfile
 
-# Compiler to use. Options: "g++", "clang", ...
-CXX := env("CXX", "g++")
-
-# Number of cores for parallel compilation.
-JOBS := env("JOBS", "6")
-
 alias b := build
 alias h := help
 alias f := fmt
 
+# Syncs pycobench's Python environment. The benchmarked binaries are built on
+# demand, one per (tool, revision), by `just compare` and `just suite`.
+[working-directory("./harnesses/pycobench/")]
+setup-python:
+    uv sync
+
+alias setup := build
+build: setup-python
+
+# The legacy pipeline (`run_all.sh`, `jobs/*.yaml`) runs the other libraries
+# until `scripts/build_version.sh` builds them.
+
+# Legacy: builds mata and installs it system-wide.
 [working-directory("./subjects/mata/")]
 build-mata BUILD_MODE="release":
     make {{ BUILD_MODE }}
     sudo make install
 
+# Legacy: builds the .emp interpreters into `bin/`.
 build-harnesses:
     sh ./harnesses/automata-program-parser/build.sh
 
-[working-directory("./harnesses/pycobench/")]
-setup-python:
-    uv sync
-
-# Builds the mata library + interpreters, and syncs pycobench's Python environment.
-# This is everything needed before running the benchmarks (see `run_all.sh`/`just smoke-test`).
-build BUILD_MODE="release": (build-mata BUILD_MODE) build-harnesses setup-python
-
-alias setup := build
+# Legacy: everything `run_all.sh` needs.
+build-legacy BUILD_MODE="release": (build-mata BUILD_MODE) build-harnesses setup-python
 
 # Installs system-level build dependencies (compiler, cmake, uv) on Debian/Ubuntu or macOS.
 # On any other system, install these manually: a C++20 compiler, cmake, make, and uv
@@ -60,10 +61,12 @@ bootstrap:
       curl -LsSf https://astral.sh/uv/install.sh | sh
     fi
 
-# Runs a quick, low-timeout pass of the regexps_union determinize-minimize benchmark
-# to sanity-check that the pipeline (mata binary + pycobench + Python env) works end to end.
+# Compares the pinned mata against its parent on one quick instance, as an
+# end-to-end check of build, measurement and reporting.
 smoke-test:
-    ./run_all.sh --test-run -y --regexps_union-determinize-minimize
+    ./scripts/compare_versions.sh --test-run --timeout 10 --jobs 1 \
+        --program emp-programs/automata_inclusion.emp --input inputs/bench-double-bool-comb-cox.input \
+        --output-dir smoke-test HEAD^=smoke-parent HEAD=smoke-head
 
 # Builds one tool at one revision (tag, branch or commit) into bin/<tool>-<rev>.
 build-version REV TOOL="mata":
@@ -80,20 +83,15 @@ tools:
 compare PROGRAM INPUT +SPECS:
     ./scripts/compare_versions.sh --program {{ PROGRAM }} --input {{ INPUT }} {{ SPECS }}
 
+# Runs every experiment of a suite on the given builds (and compare_versions options).
+# Example: just suite suites/tacas-24.suite --repeat 3 v1.32.32 devel
+suite SUITE +ARGS:
+    ./scripts/run_suite.sh {{ SUITE }} {{ ARGS }}
+
 # Regenerates the tables and plots of a finished run (a results/data/<dir>, or a single .csv).
 # Example: just report results/data/words_of_lengths-10-2026-10-08-14-00-00 --metric words_of_lengths
 report RUN *OPTS:
     ./scripts/report.sh {{ OPTS }} {{ RUN }}
-
-alias c := clean
-clean:
-    make clean
-
-alias r := release
-release: (build "release")
-
-alias rd := release-debuginfo
-release-debuginfo: (build "release-debuginfo")
 
 help:
     just --list --justfile {{ justfile() }}
