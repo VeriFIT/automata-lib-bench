@@ -255,7 +255,7 @@ echo "[!] Comparing ${#methods[@]} builds: ${methods[*]}"
 echo "[!] Job config: $config"
 echo "[!] Results:    results/data/$output_dir"
 
-bash ./scripts/run_pyco.sh $testrun --config "$config" --timeout "$timeout" --jobs "$jobs" \
+bash ./scripts/run_pyco.sh ${testrun:+"$testrun"} --config "$config" --timeout "$timeout" --jobs "$jobs" \
     -s "$output_dir" "${inputs[@]}"
 
 [ "$report" = true ] || exit 0
