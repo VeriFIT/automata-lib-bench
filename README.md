@@ -142,11 +142,22 @@ keeps each cell's minimum (a cell that failed in any repeat stays failed); the
 per-repeat tables are kept in `<csv>-repeats/`. `--memout <GB>` caps the
 memory of every run, which is what fills the *memouts* column of the report.
 
-## What is measured: `.emp` programs
+## What is measured: programs
 
-An experiment is a `.emp` program from `emp-programs/` run on every automaton
-of an `inputs/*.input` file. The program is a sequence of statements, one per
-line, with `#` starting a comment:
+An experiment is a program run on every line of an `inputs/*.input` file, each
+column of the line (a `.mata` automaton) becoming one argument. A program is
+either an `.emp` program, run by every tool's interpreter, or a C++ program,
+built against the libmata of every compared revision. Both print what they
+measure as `<name>: <value>` lines, each becoming a column of the result table
+next to `runtime`, the wall-clock time of the whole process. An operation that
+computes an answer also prints `result: <answer>`, which the report cross-checks
+between the compared builds.
+
+### `.emp` programs
+
+For operations the interpreters already know, and for comparing libraries: a
+program in `emp-programs/` is a sequence of statements, one per line, with `#`
+starting a comment:
 
 ```
 <var> = <op> <arg>...    # binds the result of the operation
@@ -160,17 +171,50 @@ for instance asks `mata::applications::strings::get_words_of_lengths()` for an
 accepted word of length 10 -- the automaton is read as a one-tape transducer, so
 it takes exactly one length, an n-tape NFT would take n of them.
 
-Every operation prints the time it took under its own name
-(`words_of_lengths: 0.00026`), so the result table has a column isolating the
-measured operation from parsing and construction, next to the `runtime` column
-holding the wall-clock time of the whole process. An operation that computes an
-answer also prints `result: <answer>`, which the report cross-checks between the
-compared builds.
-
+Every operation prints its time under its own name (`words_of_lengths: 0.00026`).
 A new operation is added by naming it in `STR_OP` in
 `harnesses/automata-program-parser/src/cpp/interpreter/parser.h`, dispatching it
 in `interpreter/interpreter.h`, and implementing it per tool (e.g. in
 `interpreter_mata.cc`).
+
+### C++ programs
+
+For anything else -- a new algorithm, a variant chosen by a parameter, an API
+the interpreter does not expose, an operation of microseconds: a file
+`cc-programs/<name>.cc` is a complete program, built per revision on demand by
+`just compare cc-programs/<name>.cc <input> <revisions>...`. It loads its
+arguments and measures with the harness' `utils/mata_load.hh` and
+`utils/bench.hh`, which the interpreter uses as well:
+
+```cpp
+#include <mata/nfa/nfa.hh>
+
+#include "utils/bench.hh"
+#include "utils/mata_load.hh"
+
+int main(int argc, char **argv) {
+  // Times 'mataparsing' (and 'mataminterm' for bitvector alphabets).
+  const std::vector<mata::nfa::Nfa> auts{bench::load_nfas(argc, argv)};
+  const mata::nfa::Nfa det{bench::measure("determinize", [&] {
+    return mata::nfa::determinize(auts[0]);
+  })};
+  bench::report("states", det.num_of_states());
+}
+```
+
+- `bench::measure(name, f)` runs `f` once, prints its time and returns its
+  result. For operations of a millisecond or more; repeating them is
+  `--repeat`'s job, in fresh processes.
+- `bench::measure_repeated(name, f)` prints the median over batches of at least
+  10 ms of the time per call, for operations too short to time once. `f` must
+  not modify its inputs: copy them inside `f`.
+- `bench::report(name, value)` prints anything that is not a time.
+
+Times are seconds of a monotonic wall clock, as in pyinterpret. A name may be
+printed several times per run, and the column holds the sum. Names are
+`[A-Za-z0-9_.-]+`, as they become columns and file names of the report.
+`cc-programs/trim.cc` is a complete example: out-of-place `trim()` against
+copy + in-place `trim()`, on the inputs and on their product.
 
 ## Reporting
 

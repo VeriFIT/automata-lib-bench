@@ -94,8 +94,10 @@ tools:
 
 # Benchmarks several tools and/or revisions against each other on the same inputs,
 # and writes the tables and plots comparing them next to the measurements.
+# PROGRAM is an .emp program or a C++ program cc-programs/<name>.cc.
 # Specs are '<tool>:<rev>[=<label>],...' or a bare <rev> of mata; the first one is the baseline.
 # Example: just compare emp-programs/words_of_lengths-10.emp inputs/bench-regexps_union.input 24a00cf0^=before 24a00cf0=after
+# Example: just compare cc-programs/trim.cc inputs/bench-double-bool-comb-cox.input pr/879
 compare PROGRAM INPUT +SPECS:
     ./scripts/compare_versions.sh --program {{ PROGRAM }} --input {{ INPUT }} {{ SPECS }}
 

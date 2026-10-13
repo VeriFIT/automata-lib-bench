@@ -11,7 +11,9 @@
 # 'build/versions/<subject>/<rev>/src' and every tool builds from there into its
 # own directory, so revisions and tools never clobber each other.
 #
-# Result: bin/<tool>-<rev>
+# Result: bin/<tool>-<rev>; with '--program cc-programs/<name>.cc' also
+# 'build/versions/<subject>/<rev>/mata/programs/<name>', that C++ benchmark
+# program linked against the revision's libmata.
 #
 # Adding a tool: add it to tool_subject() and write a _build_<tool> function.
 
@@ -32,6 +34,7 @@ usage() { {
         echo "  -l|--list-tools             list the known tools and their subjects"
         echo "  -f|--force                  rebuild even if the binary already exists"
         echo "  -b|--build-mode <mode>      Release (default), RelWithDebInfo, Debug"
+        echo "  -p|--program <prog.cc>      also build this C++ program of cc-programs/ (tool 'mata' only)"
     } >&2
 }
 
@@ -109,10 +112,25 @@ EOF
     chmod +x "$binary"
 }
 
+# C++ benchmark program linked against the revision's libmata. CMake rebuilds
+# it only when the program, the harness headers or libmata changed.
+build_program() {
+    local name
+    [ "$tool" = mata ] || die "C++ programs link libmata; build them with tool 'mata', not '$tool'"
+    [ "$(cd "$(dirname "$program")" && pwd)" = "$rootdir/cc-programs" ] ||
+        die "C++ programs live in cc-programs/, not in $(dirname "$program")"
+    name=$(basename "$program" .cc)
+    cmake -B "$outdir/programs" -S "$rootdir/cc-programs" \
+        -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$outdir/prefix" >/dev/null
+    cmake --build "$outdir/programs" --parallel "$jobs" --target "$name"
+    echo "[done] $outdir/programs/$name"
+}
+
 # === Main ===
 
 force=false
 build_mode="Release"
+program=""
 args=()
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -129,6 +147,10 @@ while [ $# -gt 0 ]; do
             shift 1;;
         -b|--build-mode)
             build_mode="$2"
+            shift 2;;
+        -p|--program)
+            [ -f "$2" ] || die "no such program: $2"
+            program="$2"
             shift 2;;
         -*)
             usage "unknown option: $1"
@@ -176,6 +198,7 @@ key="$commit $build_mode harness:$harness_state"
 stamp="$outdir/BUILD_KEY"
 if [ -x "$binary" ] && [ "$force" = false ] && [ "$(cat "$stamp" 2>/dev/null)" = "$key" ]; then
     echo "[!] $tool/$slug: already built at $commit ($binary); use --force to rebuild"
+    [ -z "$program" ] || build_program
     exit 0
 fi
 
@@ -196,3 +219,4 @@ fi
 
 echo "$key" > "$stamp"
 echo "[done] $binary ($(git -C "$worktree" describe --tags --always))"
+[ -z "$program" ] || build_program
