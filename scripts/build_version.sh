@@ -165,9 +165,16 @@ commit=$(git -C "$subject_abs" rev-parse --verify --quiet "$rev^{commit}") ||
 
 # The cache is keyed on the commit, not the label: labels such as 'devel',
 # 'HEAD' or a pull request's head move, and a stale binary would be measured
-# under the new name. The stamp is per tool, as tools share the checkout.
-stamp="$outdir/COMMIT"
-if [ -x "$binary" ] && [ "$force" = false ] && [ "$(cat "$stamp" 2>/dev/null)" = "$commit" ]; then
+# under the new name. Every tool also builds the harness (the interpreter and
+# its timing code), so its revision and uncommitted changes are part of the key,
+# as is the build mode. The stamp is per tool, as tools share the checkout.
+harness="$rootdir/harnesses/automata-program-parser"
+harness_state=$(git -C "$harness" rev-parse HEAD)
+git -C "$harness" diff --quiet HEAD ||
+    harness_state+="+$(git -C "$harness" diff HEAD | sha256sum | cut -c1-12)"
+key="$commit $build_mode harness:$harness_state"
+stamp="$outdir/BUILD_KEY"
+if [ -x "$binary" ] && [ "$force" = false ] && [ "$(cat "$stamp" 2>/dev/null)" = "$key" ]; then
     echo "[!] $tool/$slug: already built at $commit ($binary); use --force to rebuild"
     exit 0
 fi
@@ -187,5 +194,5 @@ fi
 
 "_build_$tool" "$worktree" "$outdir" "$binary"
 
-echo "$commit" > "$stamp"
+echo "$key" > "$stamp"
 echo "[done] $binary ($(git -C "$worktree" describe --tags --always))"
