@@ -205,6 +205,20 @@ Java or a .NET library is added exactly like a C++ one. `just tools` lists them:
 | ---- | ------- | ---- | ---------- |
 | `mata` | `subjects/mata` | emp, cc | the C++ interpreter linked against that revision's `libmata` |
 | `pymata` | `subjects/mata` | emp | `pyinterpret`'s `MataEngine` on that revision's Python bindings |
+| `vata` | `subjects/libvata` | emp | the C++ interpreter on libvata (no determinization, minimization, concatenation) |
+| `awali` | `tarball:` awali releases | emp | the C++ interpreter on awali's dynamic library |
+| `brics` | `subjects/mata-comparison-brics` | emp | the Java interpreter on brics (no determinization, minimization) |
+| `automatalib` | `subjects/mata-comparison-brics` | emp | the Java interpreter on AutomataLib (no minimization, concatenation) |
+| `automata-net` | `subjects/automata-net` | emp | the .NET interpreter of Automata.NET (no determinization, minimization, concatenation) |
+| `fado` | `pypi:fado` | emp | `pyinterpret`'s `FadoEngine` on that FAdo release |
+| `automata-py` | `pypi:automata-lib` | emp | `pyinterpret`'s `AutomataLibEngine` on that automata-lib release |
+
+An operation a library lacks makes the instance fail (ERR) instead of being
+skipped. The Java and .NET interpreters read explicit alphabets only, so their
+wrappers mintermize bitvector inputs first (`scripts/massage_arguments.py`,
+cached under `build/minterm/`). The dev shell provides their toolchains (JDK,
+Maven, .NET SDK, Boost for libvata); the wrappers embed the store paths, so keep
+the shell rooted (e.g. with nix-direnv) to keep them from being collected.
 
 A subject is a git repository (`subjects/<name>`, revisions are tags, branches
 and commits), `pypi:<package>` (revisions are versions), or `tarball:<url>`

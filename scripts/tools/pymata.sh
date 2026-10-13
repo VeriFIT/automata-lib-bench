@@ -17,7 +17,6 @@ build() {
     # --no-deps keeps the just-built libmata: pyinterpret depends on
     # 'libmata>=1.0.0' and older revisions would be replaced from PyPI.
     VIRTUAL_ENV="$venv" uv pip install --no-deps "$harness/src/python"
-    VIRTUAL_ENV="$venv" uv pip install automata-lib fado
 
     # Wrapper so that every tool is invoked uniformly as '<binary> <prog.emp> <args>'.
     cat > "$binary" <<EOF

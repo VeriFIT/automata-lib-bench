@@ -8,10 +8,20 @@
 timeout = 60
 
 [builds]
-# Every library, each through its own interpreter of the same .emp programs.
+# Every library, each through its own interpreter of the same .emp programs:
+# vata, awali, brics, automatalib and automata.net at the versions the paper's
+# comparison pinned, the others at recent ones. A library lacking an operation
+# of a program fails it (ERR) rather than skipping it.
 tools = [
   "mata:v1.32.45-dev.57",
   "pymata:v1.32.45-dev.57",
+  "vata:c3576a49",
+  "awali:2.3.0-230512",
+  "brics:8bca9b19",
+  "automatalib:8bca9b19",
+  "automata-net:8f02bd95",
+  "fado:2.2.0",
+  "automata-py:9.2.0",
 ]
 
 [experiment.armc-incl]
@@ -25,9 +35,6 @@ inputs = "inputs/bench-variadic-bool-comb-ere.input"
 [experiment.email-filter]
 program = "emp-programs/email_filter.emp"
 inputs = "inputs/bench-quintuple-email-filter.input"
-# The interpreters of automata.net and the Java libraries write mintermized
-# copies next to the shared inputs, which parallel runs would race on.
-jobs = 1
 
 [experiment.lia-explicit]
 program = "emp-programs/complement.emp"

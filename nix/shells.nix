@@ -30,6 +30,10 @@
                   pkgs.zlib
                 ];
 
+                # libvata's CMake needs Boost's 'system' component, gone in 1.89
+                # (scripts/tools/vata.sh).
+                BOOST_ROOT = "${pkgs.boost188.dev}";
+
                 inputsFrom =
                   with inputs.self.packages.${pkgs.stdenv.hostPlatform.system};
                   [
@@ -54,6 +58,13 @@
                     python314
                     yazi
                     helix
+
+                    # Toolchains of the other libraries (scripts/tools/*.sh). Their
+                    # wrappers embed these store paths: a GC root of the shell
+                    # (e.g. nix-direnv's) keeps them from being collected.
+                    jdk21_headless
+                    maven
+                    dotnet-sdk_8
 
                     # git
                     # coreutils
