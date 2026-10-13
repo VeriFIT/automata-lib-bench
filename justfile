@@ -1,5 +1,11 @@
 #!/usr/bin/env -S just --justfile
 
+# Compiler to use. Options: "g++", "clang", ...
+CXX := env("CXX", "g++")
+
+# Number of cores for parallel compilation.
+JOBS := env("JOBS", "6")
+
 alias b := build
 alias h := help
 alias f := fmt
@@ -28,6 +34,16 @@ build-harnesses:
 
 # Legacy: everything `run_all.sh` needs.
 build-legacy BUILD_MODE="release": (build-mata BUILD_MODE) build-harnesses setup-python
+
+alias r := release
+release: (build-legacy "release")
+
+alias rd := release-debuginfo
+release-debuginfo: (build-legacy "release-debuginfo")
+
+# Legacy: cleans mata's build tree (`make clean`); `clean` removes the per-revision builds.
+clean-legacy:
+    make clean
 
 # Installs system-level build dependencies (compiler, cmake, uv) on Debian/Ubuntu or macOS.
 # On any other system, install these manually: a C++20 compiler, cmake, make, and uv
