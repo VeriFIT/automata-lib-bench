@@ -3,7 +3,7 @@
 # Runs one pycobench job config on .input files and turns each run into a
 # ';'-delimited .csv under 'results/data[/<suffix>]'.
 #
-# Called by scripts/compare_versions.sh, which generates the job config.
+# Called by scripts/bench.py, which generates the job config.
 
 set -euo pipefail
 

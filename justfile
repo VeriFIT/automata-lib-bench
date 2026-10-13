@@ -19,8 +19,8 @@ setup-python:
 alias setup := build
 build: setup-python
 
-# The legacy pipeline (`run_all.sh`, `jobs/*.yaml`) runs the other libraries
-# until `scripts/build_version.sh` builds them.
+# The legacy pipeline (`run_all.sh`, `jobs/*.yaml`), kept as it was;
+# `scripts/bench.py` builds every library through `scripts/build_version.sh`.
 
 # Legacy: builds mata and installs it system-wide.
 [working-directory("./subjects/mata/")]
@@ -77,34 +77,36 @@ bootstrap:
       curl -LsSf https://astral.sh/uv/install.sh | sh
     fi
 
-# Compares the pinned mata against its parent on one quick instance, as an
-# end-to-end check of build, measurement and reporting.
+# Compares the pinned mata against its parent on one quick instance per
+# program kind (suites/smoke.toml), as an end-to-end check of build,
+# measurement and reporting.
 smoke-test:
-    ./scripts/compare_versions.sh --test-run --timeout 10 --jobs 1 \
-        --program emp-programs/automata_inclusion.emp --input inputs/bench-double-bool-comb-cox.input \
-        --output-dir smoke-test HEAD^=smoke-parent HEAD=smoke-head
+    ./scripts/bench.py suites/smoke.toml --test-run --output-dir smoke-test
 
-# Builds one tool at one revision (tag, branch or commit) into bin/<tool>-<rev>.
+# Builds one tool at one revision (tag, branch, commit or version) into bin/<tool>-<rev>.
 build-version REV TOOL="mata":
     ./scripts/build_version.sh {{ TOOL }} {{ REV }}
 
-# Lists the tools that can be benchmarked and the subject repo each is built from.
+# Lists the tools that can be benchmarked, the subject each is built from and the programs it runs.
 tools:
     ./scripts/build_version.sh --list-tools
 
-# Benchmarks several tools and/or revisions against each other on the same inputs,
-# and writes the tables and plots comparing them next to the measurements.
-# PROGRAM is an .emp program or a C++ program cc-programs/<name>.cc.
-# Specs are '<tool>:<rev>[=<label>],...' or a bare <rev> of mata; the first one is the baseline.
+# Runs PROGRAM (an .emp program or cc-programs/<name>.cc) on INPUT (an .input
+# file or a glob of .mata files) for every build, and writes the tables and
+# plots comparing them. Builds are '[<tool>:]<rev>[=<label>][,...]' or
+# 'pr/<N>'; the first is the baseline. Options of scripts/bench.py go among
+# them (--repeat 3, --variant <name>=<args>, --list, ...).
 # Example: just compare emp-programs/words_of_lengths-10.emp inputs/bench-regexps_union.input 24a00cf0^=before 24a00cf0=after
 # Example: just compare cc-programs/trim.cc inputs/bench-double-bool-comb-cox.input pr/879
-compare PROGRAM INPUT +SPECS:
-    ./scripts/compare_versions.sh --program {{ PROGRAM }} --input {{ INPUT }} {{ SPECS }}
+compare PROGRAM INPUT +ARGS:
+    ./scripts/bench.py --program {{ PROGRAM }} --input '{{ INPUT }}' {{ ARGS }}
 
-# Runs every experiment of a suite on the given builds (and compare_versions options).
-# Example: just suite suites/tacas-24.suite --repeat 3 v1.32.32 devel
-suite SUITE +ARGS:
-    ./scripts/run_suite.sh {{ SUITE }} {{ ARGS }}
+# Runs the experiments of a suite (suites/*.toml). Builds and options given
+# here override the suite's; --list shows what would run.
+# Example: just suite suites/tacas-24.toml --repeat 3 v1.32.32 devel
+# Example: just suite suites/quick.toml --only trim,minimize pr/879
+suite SUITE *ARGS:
+    ./scripts/bench.py {{ SUITE }} {{ ARGS }}
 
 # Regenerates the tables and plots of a finished run (a results/data/<dir>, or a single .csv).
 # Example: just report results/data/words_of_lengths-10-2026-10-08-14-00-00 --metric words_of_lengths

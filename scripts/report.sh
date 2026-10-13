@@ -8,7 +8,7 @@
 # pairwise tables as .csv/.md/.tex, a cactus plot, and one scatter plot per
 # measured build against the baseline.
 #
-# scripts/compare_versions.sh calls this at the end of every run; call it
+# scripts/bench.py calls this at the end of every experiment; call it
 # directly to re-report an old run, or to report a different metric.
 #
 # Examples:

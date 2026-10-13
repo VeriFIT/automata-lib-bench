@@ -97,8 +97,8 @@ tests-integration/results/*.output
 # TODO: either register as a proper submodule once the source repo is confirmed, or delete.
 /benchmarks/benchmarks-automatalib/
 
-# Benchmark runs, one directory each (scripts/compare_versions.sh, scripts/run_suite.sh, run_all.sh).
+# Benchmark runs, one directory each (scripts/bench.py, run_all.sh).
 /results/data/
 
-# Job configs of older scripts/compare_versions.sh, which now keeps them in the run.
+# Job configs of the removed scripts/compare_versions.sh, which kept them here.
 /jobs/generated/
