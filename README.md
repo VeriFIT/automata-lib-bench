@@ -3,9 +3,9 @@
 This repository contains data, tools, benchmarks and scripts for comparing various libraries for handling Nondeterministic Finite Automata (NFA) and other automata types.
 This repository is meant to be used for running a set of benchmarks on a set of libraries.
 
-The available tools are listed in `jobs/*.yaml` (each file corresponds to a~group of similar experiments); each tool is
-installed in the `tools` directory, and takes as input automata in various formats (each library tends to use different
-format).
+The available tools are listed by `just tools`; each is built per revision from
+its subject repository under `subjects/`, and takes as input automata in various
+formats (each library tends to use different format).
 The pipeline uses `pycobench` (a python benchmarknig package) to measure the time of each library and output a report in
 `csv` (delimited by `;`) which lists individual measurements, results and some other metrics (e.g., time of
 mintermization or optionally time of some preprocessing) for each library.
@@ -42,10 +42,22 @@ Everything is driven through [`just`](https://github.com/casey/just) recipes
 Either way:
 
 ```shell
-just build        # builds mata + the interpreters, and syncs pycobench's Python env
-just smoke-test    # quick sanity check that the pipeline works end to end
-./run_all.sh --help
+just build         # syncs pycobench's Python env (binaries are built on demand)
+just smoke-test    # compares the pinned mata against its parent on one instance
+just suite suites/tacas-24.suite v1.32.32 devel   # the paper's experiments
 ```
+
+A suite (`suites/*.suite`) lists experiments, one per line, as
+`<name> <program.emp or -> <input> [compare_versions options]`;
+`scripts/run_suite.sh` runs each through `scripts/compare_versions.sh` into
+`results/data/<suite>-<timestamp>/<name>/`, passing on the builds and options
+given after the suite (`--only <a,b>` picks experiments, `--list` lists them).
+
+The other libraries (vata, awali, automata.net, FAdo, automata.py, automatalib,
+brics) are not built by `scripts/build_version.sh` yet. Until they are, they
+run through the legacy pipeline: `jobs/*.yaml` lists their commands,
+`just build-legacy` installs mata system-wide and builds the interpreters, and
+`./run_all.sh --help` lists the experiments.
 
 ## Comparing tools and versions
 
@@ -85,7 +97,17 @@ just compare emp-programs/determinize.emp inputs/bench-regexps_union.input \
 
 Each run gets its own directory `results/data/<run>/`, holding one `.csv` per
 input file and, next to each, a `<csv>-report/` directory with the tables and
-plots (see *Reporting* below).
+plots (see *Reporting* below). It also keeps what the run was made from: the
+generated pycobench job config, a copy of the `.emp` program, and
+`manifest.json`, which ties every build label to the commit it was built from
+and records the settings, the hashes of the program and inputs, the revisions of
+this repository and its harnesses, and the machine (CPU, governors, compiler).
+
+A build is reused while its label still resolves to the commit it was built
+from; a label that moved (`devel`, `HEAD`, a force-pushed pull request) is
+rebuilt. `just clean [days]` removes the builds not rebuilt for `days` days
+(default 30) together with their worktrees and binaries, and failed builds
+regardless of age; `just clean 30 --dry-run` lists them.
 
 `just tools` lists the known tools:
 
@@ -109,6 +131,15 @@ function in `scripts/build_version.sh`.
 `harnesses/pycobench` is itself an independent project (its own git
 repository, `pyproject.toml`/`uv.lock`, and `flake.nix`) and can be built and
 run on its own -- see `harnesses/pycobench/README.md`.
+
+### Measurement noise
+
+By default every pycobench worker is pinned to a physical core of its own,
+never the core of CPU 0, so `--jobs` may not exceed the cores left; `--no-pin`
+lets the workers float. `--repeat <n>` measures every instance `n` times and
+keeps each cell's minimum (a cell that failed in any repeat stays failed); the
+per-repeat tables are kept in `<csv>-repeats/`. `--memout <GB>` caps the
+memory of every run, which is what fills the *memouts* column of the report.
 
 ## What is measured: `.emp` programs
 

@@ -1,0 +1,51 @@
+name: smoke-test
+
+# Branches are covered by their pull requests; a bare 'push' would run twice.
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+# A new push to a pull request supersedes its running check.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check out the submodules
+        run: |
+          # .gitmodules names the submodules by SSH, which needs no key for public repositories over HTTPS.
+          git config --global url."https://github.com/".insteadOf "git@github.com:"
+          git submodule update --init harnesses/pycobench harnesses/automata-program-parser subjects/mata
+          # nfa-bench is several GB; the smoke test reads only one family.
+          sha=$(git ls-tree HEAD benchmarks/nfa-bench | awk '{ print $3 }')
+          git clone --filter=blob:none --no-checkout --sparse https://github.com/VeriFIT/nfa-bench.git benchmarks/nfa-bench
+          git -C benchmarks/nfa-bench sparse-checkout set benchmarks/bool_comb/cox
+          git -C benchmarks/nfa-bench checkout --quiet "$sha"
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+      - name: Set up pycobench
+        run: nix develop --command just build
+      - name: Compare the pinned mata against its parent
+        run: nix develop --command just smoke-test
+      - name: Check the run's outputs
+        run: |
+          run=results/data/smoke-test
+          test -s "$run/manifest.json"
+          test -s "$run/compare-automata_inclusion.yaml"
+          ls "$run"/*.csv
+          # Every build must have finished the instance, not timed out or failed.
+          for summary in "$run"/*-report/summary-runtime.csv; do
+            cat "$summary"
+            awk -F, 'NR > 1 && $3 < 1 { print "not finished: " $1; bad = 1 } END { exit bad }' "$summary"
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-test-results
+          path: results/data/smoke-test

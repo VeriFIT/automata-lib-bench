@@ -163,13 +163,19 @@ binary="$rootdir/bin/$tool-$slug"
 commit=$(git -C "$subject_abs" rev-parse --verify --quiet "$rev^{commit}") ||
     die "$subject: unknown revision '$rev'"
 
-if [ -x "$binary" ] && [ "$force" = false ]; then
-    echo "[!] $tool/$slug: already built ($binary); use --force to rebuild"
+# The cache is keyed on the commit, not the label: labels such as 'devel',
+# 'HEAD' or a pull request's head move, and a stale binary would be measured
+# under the new name. The stamp is per tool, as tools share the checkout.
+stamp="$outdir/COMMIT"
+if [ -x "$binary" ] && [ "$force" = false ] && [ "$(cat "$stamp" 2>/dev/null)" = "$commit" ]; then
+    echo "[!] $tool/$slug: already built at $commit ($binary); use --force to rebuild"
     exit 0
 fi
 
 echo "========== Building $tool '$slug' ($commit) =========="
 mkdir -p "$outdir" "$rootdir/bin"
+# A failed build must not leave the previous revision's binary behind.
+rm -f "$stamp" "$binary"
 
 # One checkout per revision, shared by every tool built from this subject.
 if [ -e "$worktree/.git" ]; then
@@ -181,5 +187,5 @@ fi
 
 "_build_$tool" "$worktree" "$outdir" "$binary"
 
-echo "$commit" > "$version_dir/COMMIT"
+echo "$commit" > "$stamp"
 echo "[done] $binary ($(git -C "$worktree" describe --tags --always))"
