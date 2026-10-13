@@ -1,0 +1,4 @@
+# Tool files are sourced by scripts/build_version.sh, which reads 'subject' and
+# 'runs' and sets the variables build() uses.
+shell=bash
+disable=SC2034,SC2154
