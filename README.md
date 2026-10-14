@@ -356,6 +356,31 @@ printed several times per run, and the column holds the sum. Names are
 on the inputs and on their product) and `cc-programs/minimize.cc` (an algorithm
 per variant) are complete examples.
 
+### NFT programs
+
+`suites/nft.toml` measures mata's transducer (NFT) operations on
+`benchmarks/nfa-bench/benchmarks/nft`: the operands of the compositions,
+applications and projections done when solving string constraints with replace
+operations, one file per operation, one `@NFT-explicit` section per operand
+(see nfa-bench's README). The files write epsilon as `<eps>`, which mata reads
+since `f4adcabd`. Four programs take one such file; their variants compute the
+same result in different ways:
+
+| Program            | Variants (`--<option>=`)                                                | Times                              |
+| ------------------ | ----------------------------------------------------------------------- | ---------------------------------- |
+| `nft-compose.cc`   | `order=left\|right`, `between=none\|trim\|reduce`, `mode=auto\|general` | `composition`, `trim`, `reduce`    |
+| `nft-apply.cc`     | `direction=forward\|backward`, `via=apply\|compose\|word\|invert`       | `to_nfa`, `apply`                  |
+| `nft-project.cc`   | `keep=0\|1`, `then=none\|reduce\|minimize`                              | `projection`, `reduce`, `minimize` |
+| `nft-transform.cc` | `operation=invert\|trim\|reduce\|determinize`                           | the operation                      |
+
+Each reports the `states` and `transitions` of its result and, as `result`,
+whether the result is empty, which every variant must agree on and the report
+cross-checks. `cc-programs/nft.hh` loads the NFTs and times with
+`bench::measure_auto`: one run for a call of 10 ms or more, otherwise
+`measure_repeated`, as most NFT operations on these benchmarks take
+microseconds. A variant that cannot compute an instance (`via=word` of a
+language that is not one word) exits with status 2, an error of that run.
+
 ## Reporting
 
 Every run ends with the tables and plots comparing the measured builds; they are

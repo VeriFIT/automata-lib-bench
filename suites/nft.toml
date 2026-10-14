@@ -1,0 +1,76 @@
+# Transducer (NFT) operations of mata on benchmarks/nfa-bench/benchmarks/nft: the operands of the compositions,
+# applications and projections done when solving string constraints with replace operations. Each experiment
+# compares ways of computing one result: the variants agree on whether it is empty, which the report cross-checks.
+# The files use '<eps>', which mata reads since f4adcabd.
+#
+#   scripts/bench.py suites/nft.toml                         # the pinned mata
+#   scripts/bench.py suites/nft.toml --only nft-compose-pair pr/912
+#   scripts/bench.py suites/nft.toml --list
+
+[defaults]
+builds = ["HEAD"]
+
+[experiment.nft-compose-pair]
+description = "Composition of two NFTs: the general algorithm against the one mata picks"
+program = "cc-programs/nft-compose.cc"
+variants = { auto = "--mode=auto", general = "--mode=general" }
+inputs = "benchmarks/nfa-bench/benchmarks/nft/*/composition/pair/*.mata"
+
+[experiment.nft-construct-replace]
+extends = "nft-compose-pair"
+description = "The compositions that construct the NFT of a replace operation"
+inputs = "benchmarks/nfa-bench/benchmarks/nft/*/composition/construct_replace/*.mata"
+
+[experiment.nft-compose-sequence]
+description = "A chain of compositions: folded from the left or the right, reducing the intermediate NFTs or not"
+program = "cc-programs/nft-compose.cc"
+variants = { left = "--order=left", right = "--order=right", left-trim = "--order=left --between=trim", left-reduce = "--order=left --between=reduce" }
+inputs = "benchmarks/nfa-bench/benchmarks/nft/*/composition/sequence/*.mata"
+
+[experiment.nft-apply-literal]
+description = "The image of a literal: Nft::apply() of its NFA or of its word, or a composition with its identity"
+program = "cc-programs/nft-apply.cc"
+variants = { apply = "--direction=forward --via=apply", compose = "--direction=forward --via=compose", word = "--direction=forward --via=word" }
+inputs = "benchmarks/nfa-bench/benchmarks/nft/*/apply_literal/*.mata"
+
+[experiment.nft-apply-literal-backward]
+description = "The preimage of a literal: Nft::apply() on the output level, of the inverted NFT, or a composition"
+program = "cc-programs/nft-apply.cc"
+variants = { apply = "--direction=backward --via=apply", compose = "--direction=backward --via=compose", word = "--direction=backward --via=word", invert = "--direction=backward --via=invert" }
+inputs = "benchmarks/nfa-bench/benchmarks/nft/*/apply_literal_backward/*.mata"
+
+[experiment.nft-apply-language]
+description = "The image of a language: Nft::apply() of its NFA, or a composition with its identity"
+program = "cc-programs/nft-apply.cc"
+variants = { apply = "--direction=forward --via=apply", compose = "--direction=forward --via=compose" }
+inputs = "benchmarks/nfa-bench/benchmarks/nft/*/apply_language/*.mata"
+
+[experiment.nft-apply-language-backward]
+description = "The preimage of a language: Nft::apply() on the output level, of the inverted NFT, or a composition"
+program = "cc-programs/nft-apply.cc"
+variants = { apply = "--direction=backward --via=apply", compose = "--direction=backward --via=compose", invert = "--direction=backward --via=invert" }
+inputs = "benchmarks/nfa-bench/benchmarks/nft/*/apply_language_backward/*.mata"
+
+[experiment.nft-project]
+description = "The domain and the range of an NFT, and the range reduced by simulation or minimized"
+program = "cc-programs/nft-project.cc"
+variants = { domain = "--keep=0", range = "--keep=1", range-reduce = "--keep=1 --then=reduce", range-minimize = "--keep=1 --then=minimize" }
+inputs = "benchmarks/nfa-bench/benchmarks/nft/*/projection/*.mata"
+
+# One operation each on the NFTs of replace operations, one NFT per file.
+[experiment.nft-invert]
+program = "cc-programs/nft-transform.cc"
+variants = { invert = "--operation=invert" }
+inputs = "benchmarks/nfa-bench/benchmarks/nft/*/projection/*.mata"
+
+[experiment.nft-trim]
+extends = "nft-invert"
+variants = { trim = "--operation=trim" }
+
+[experiment.nft-reduce]
+extends = "nft-invert"
+variants = { reduce = "--operation=reduce" }
+
+[experiment.nft-determinize]
+extends = "nft-invert"
+variants = { determinize = "--operation=determinize" }
