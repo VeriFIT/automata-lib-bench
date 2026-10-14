@@ -13,5 +13,13 @@ trim_trailing_whitespace = true
 [*.{md,toml,yml,yaml,nix,html,css}]
 indent_size = 2
 
-[{**/Makefile,**/CMakeLists.txt}]
+[**/Makefile]
 indent_style = tab
+
+# clang-format (LLVM style) and cmake-format
+[{*.{cc,hh},CMakeLists.txt,*.cmake}]
+indent_size = 2
+
+# shfmt
+[{*.sh,.envrc}]
+switch_case_indent = true
