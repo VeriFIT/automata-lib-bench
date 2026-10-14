@@ -25,7 +25,7 @@ jobs:
           # nfa-bench is several GB; the smoke test reads only one family.
           sha=$(git ls-tree HEAD benchmarks/nfa-bench | awk '{ print $3 }')
           git clone --filter=blob:none --no-checkout --sparse https://github.com/VeriFIT/nfa-bench.git benchmarks/nfa-bench
-          git -C benchmarks/nfa-bench sparse-checkout set benchmarks/bool_comb/cox
+          git -C benchmarks/nfa-bench sparse-checkout set benchmarks/nfa/bool_comb/cox
           git -C benchmarks/nfa-bench checkout --quiet "$sha"
       - uses: DeterminateSystems/nix-installer-action@main
       - uses: DeterminateSystems/magic-nix-cache-action@main

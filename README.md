@@ -85,7 +85,7 @@ just compare cc-programs/trim.cc inputs/bench-double-bool-comb-cox.input --repea
 # the C++ library against the Python bindings, two revisions each
 just compare emp-programs/determinize.emp inputs/bench-regexps_union.input mata:v1.32.32,devel pymata:v1.32.32,devel
 # two variants of one program on one revision, on every .mata file of a directory
-just compare cc-programs/minimize.cc 'benchmarks/nfa-bench/benchmarks/regexps/regexps_union/*.mata' \
+just compare cc-programs/minimize.cc 'benchmarks/nfa-bench/benchmarks/nfa/regexps/regexps_union/*.mata' \
     --variant brzozowski=--algorithm=brzozowski --variant hopcroft=--algorithm=hopcroft devel
 
 # suites: all their experiments, some of them, or just what they would run
@@ -166,12 +166,12 @@ and methods.
 ```toml
 inputs = [
   "inputs/bench-regexps_union.input",                     # a list as it is
-  "benchmarks/nfa-bench/benchmarks/regexps/**/*.mata",    # one instance per file
+  "benchmarks/nfa-bench/benchmarks/nfa/regexps/**/*.mata",    # one instance per file
   # one instance per '<stem>-lhs.mata', the columns filled in with its stem
-  { glob = "benchmarks/nfa-bench/benchmarks/automata_inclusion/*-lhs.mata",
+  { glob = "benchmarks/nfa-bench/benchmarks/nfa/automata_inclusion/*-lhs.mata",
     columns = ["{stem}-lhs.mata", "{stem}-rhs.mata"], name = "inclusion" },
   # one instance per pair of files
-  { glob = "benchmarks/nfa-bench/benchmarks/email_filter/*.mata", combine = 2 },
+  { glob = "benchmarks/nfa-bench/benchmarks/nfa/email_filter/*.mata", combine = 2 },
 ]
 ```
 
