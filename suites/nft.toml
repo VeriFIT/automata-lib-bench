@@ -9,6 +9,9 @@
 
 [defaults]
 builds = ["HEAD"]
+# The time of the whole operation of a variant, all its steps; the runtime of the process is mostly its start, the
+# parsing and the repetitions of short operations.
+metrics = ["operation"]
 
 [experiment.nft-compose-pair]
 description = "Composition of two NFTs: the general algorithm against the one mata picks"

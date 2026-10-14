@@ -2,9 +2,14 @@
 //
 // One file holds all the operands of an operation, one '@NFT-explicit' section each. Symbols are read as the numbers
 // they are written as (an IntAlphabet), '<eps>' as EPSILON.
+//
+// Every step of the operation a program computes is timed as itself and as 'operation', which pycobench sums over the
+// run: the time of the whole operation, whatever steps a variant takes, for the report to compare the variants on.
 #ifndef NFT_HH
 #define NFT_HH
 
+#include <algorithm>
+#include <array>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
@@ -35,19 +40,33 @@ inline int fail(const std::exception& error) {
 	return 2;
 }
 
-/// Times @p f like measure() when one call takes 10 ms or more, and like measure_repeated() when it takes less, as one
-/// call of most NFT operations does and one measurement of it would be mostly noise. @p f must not modify its inputs.
-/// Returns the result of the first call.
-template <typename F> std::invoke_result_t<F&> measure_auto(std::string_view name, F&& f) {
+/// Times @p f, a step of the operation, as @p name and, unless @p step_of_operation is false, as 'operation'. A call of
+/// 10 ms or more is timed once; a shorter one, as one call of most NFT operations is, as the median over 5 batches of
+/// at least 10 ms of the time per call, as measure_repeated() does. @p f must not modify its inputs. Returns the result
+/// of the first call.
+template <typename F>
+std::invoke_result_t<F&> measure_auto(std::string_view name, F&& f, const bool step_of_operation = true) {
+	constexpr Clock::duration min_batch{std::chrono::milliseconds{10}};
+	constexpr std::size_t max_calls{std::size_t{1} << 24};
 	detail::check_name(name);
 	const auto start{Clock::now()};
 	std::invoke_result_t<F&> result = std::invoke(f);
-	const Seconds once{Clock::now() - start};
-	if (once >= std::chrono::milliseconds{10}) {
-		detail::print_seconds(name, once);
-	} else {
-		keep(measure_repeated(name, f));
+	Seconds time{Clock::now() - start};
+	if (time < min_batch) {
+		const auto batch = [&f](std::size_t calls) {
+			const auto batch_start{Clock::now()};
+			for (std::size_t i{0}; i < calls; ++i) { keep(std::invoke(f)); }
+			return Clock::now() - batch_start;
+		};
+		std::size_t calls{1};
+		while (calls < max_calls && batch(calls) < min_batch) { calls *= 2; }
+		std::array<Seconds, 5> per_call{};
+		for (Seconds& call : per_call) { call = Seconds{batch(calls)} / static_cast<double>(calls); }
+		std::ranges::nth_element(per_call, per_call.begin() + per_call.size() / 2);
+		time = per_call[per_call.size() / 2];
 	}
+	detail::print_seconds(name, time);
+	if (step_of_operation) { detail::print_seconds("operation", time); }
 	return result;
 }
 
@@ -82,11 +101,12 @@ inline mata::nfa::Nfa language_of(const mata::nft::Nft& identity) {
 }
 
 /// Reports the size of @p aut, and as 'result' whether its language is empty: every variant of a program computes a
-/// result of the same emptiness, which the report cross-checks. Times 'emptiness_check'.
+/// result of the same emptiness, which the report cross-checks. Times 'emptiness_check', which is not part of the
+/// operation.
 template <typename Automaton> void report_result(const Automaton& aut) {
 	report("states", aut.num_of_states());
 	report("transitions", aut.delta.num_of_transitions());
-	report("result", measure_auto("emptiness_check", [&] { return aut.is_lang_empty(); }));
+	report("result", measure_auto("emptiness_check", [&] { return aut.is_lang_empty(); }, false));
 }
 
 } // namespace bench

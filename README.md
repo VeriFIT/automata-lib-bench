@@ -377,11 +377,15 @@ same result in different ways:
 
 Each reports the `states` and `transitions` of its result and, as `result`,
 whether the result is empty, which every variant must agree on and the report
-cross-checks. `cc-programs/nft.hh` loads the NFTs and times with
-`bench::measure_auto`: one run for a call of 10 ms or more, otherwise
-`measure_repeated`, as most NFT operations on these benchmarks take
-microseconds. A variant that cannot compute an instance (`via=word` of a
-language that is not one word) exits with status 2, an error of that run.
+cross-checks. `cc-programs/nft.hh` loads the NFTs and times every step with
+`bench::measure_auto`: one run for a call of 10 ms or more, otherwise the median
+of repeated batches, as `measure_repeated`, since most NFT operations on these
+benchmarks take microseconds. Every step is also printed as `operation`, whose
+sum is the time of the variant's whole operation; the suite reports on it
+(`metrics = ["operation"]`), as the runtime of the process is mostly its start,
+the parsing and the repetitions. A variant that cannot compute an instance
+(`via=word` of a language of more than one word) exits with status 2, an error
+of that run.
 
 ## Reporting
 
