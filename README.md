@@ -36,8 +36,15 @@ Everything is driven through [`just`](https://github.com/casey/just) recipes
   operations are also exposed directly as `nix run .#<name>` (e.g.
   `nix run .#build`, `nix run .#smoke-test`) -- these just run the matching
   `just` recipe inside the flake's own devShell.
-- **Without Nix** (Linux or macOS): run `just bootstrap` once to install the
-  system dependencies (a C++20 compiler, cmake, and `uv`), then proceed as below.
+- **Without Nix**: install [`just`](https://just.systems/man/en/packages.html)
+  1.38 or newer and run `just bootstrap` once. On Debian 13 (or newer) it installs
+  everything: GCC >= 14, cmake, git, Python >= 3.13 with headers, `time`, `uv`,
+  Boost (vata), a JDK and maven (brics, automatalib) and, where apt has it,
+  the .NET 8 SDK (automata-net; Debian needs
+  [Microsoft's feed](https://learn.microsoft.com/dotnet/core/install/linux-debian)).
+  Ubuntu 24.04's GCC 13, Python 3.12 and just 1.21 are too old for recent mata
+  revisions and this justfile. On macOS it installs cmake, Python and `uv`
+  only.
 
 Either way:
 
