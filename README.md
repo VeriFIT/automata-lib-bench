@@ -278,7 +278,11 @@ interpreter, or a C++ program, built against the libmata of every compared
 revision. Both print what they measure as `<name>: <value>` lines, each
 becoming a column of the result table next to `runtime`, the wall-clock time of
 the whole process. An operation that computes an answer also prints
-`result: <answer>`, which the report cross-checks between the compared builds.
+`result: <answer>` (`true`/`false` for `is_empty` and `incl`), which the
+report cross-checks between the compared builds, whatever their tool. Every
+interpreter names an operation's time alike (`construction`, `intersection`,
+`uni`, `compl`, `concat`, `determinize`, `minimize`, `trim`, `emptiness_check`,
+`inclusion_check`), so a column compares it across tools.
 
 ### `.emp` programs
 

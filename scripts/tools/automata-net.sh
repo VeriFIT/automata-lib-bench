@@ -33,6 +33,11 @@ build() {
         "$src/BoolCombinationEmptiness/MataParser.cs"
     grep -q 'StartsWith("%Alphabet")' "$src/BoolCombinationEmptiness/MataParser.cs" ||
         die "MataParser.cs changed; cannot patch it to skip '%Alphabet' lines"
+    # Answers are 'result: true|false', as with the other tools (C# prints 'True').
+    sed -i 's/Console.WriteLine("\(emptiness\|inclusion\)_result: {0}", \([A-Za-z]*\));/Console.WriteLine("result: {0}", \2 ? "true" : "false");/' \
+        "$src/BoolCombinationEmptiness/EmpParser.cs"
+    ! grep -q '_result: ' "$src/BoolCombinationEmptiness/EmpParser.cs" ||
+        die "EmpParser.cs changed; cannot patch the names it reports"
     # Source Link would read the enclosing benchmark repository, whose git
     # extensions (relativeworktrees) it does not support. SYSLIB0011: since
     # net8.0 BinaryFormatter use is a compile error; the interpreter never

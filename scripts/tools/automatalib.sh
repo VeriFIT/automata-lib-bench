@@ -17,6 +17,12 @@ build() {
     rm -rf "$project"
     mkdir -p "$project"
     git -C "$worktree" archive HEAD | tar -x -C "$project"
+    # Answers are 'result' and n-ary intersections 'intersection', as with the other tools.
+    local parser="$project/src/main/java/cz/verifit/EmpParser.java"
+    sed -i -e 's/"\(emptiness\|inclusion\)_result: "/"result: "/' \
+        -e 's/endTimer("interall")/endTimer("intersection")/' "$parser"
+    ! grep -q -e '_result: ' -e 'endTimer("interall")' "$parser" ||
+        die "EmpParser.java changed; cannot patch the names it reports"
     # The repository below build/ caches the dependencies for later, offline
     # builds; file locks let parallel builds share it.
     JAVA_HOME="${java%/bin/java}" mvn --batch-mode --quiet --file "$project/pom.xml" \
