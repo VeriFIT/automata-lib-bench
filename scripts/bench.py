@@ -50,8 +50,10 @@ SETTINGS = {
     "memout": (int, None),
     "pin": (bool, True),
     "build_mode": (str, "Release"),
+    # The columns the report compares the methods on.
+    "metrics": (list, ["runtime"]),
 }
-KIND_NAMES = {int: "an integer", bool: "true or false", str: "a string"}
+KIND_NAMES = {int: "an integer", bool: "true or false", str: "a string", list: "a list of metric names"}
 EXPERIMENT_KEYS = {"description", "extends", "program", "programs", "variants", "inputs", "builds"}
 NAME = re.compile(r"[A-Za-z0-9_.-]+")
 WILDCARD = re.compile(r"[*?\[]")
@@ -95,6 +97,14 @@ def check_settings(table, where, extra=()):
         kind = SETTINGS[key][0]
         if not isinstance(value, kind) or (kind is int and isinstance(value, bool)):
             die(f"{where}: '{key}' must be {KIND_NAMES[kind]}, not {value!r}")
+        if kind is list and not (value and all(isinstance(m, str) and NAME.fullmatch(m) for m in value)):
+            die(f"{where}: '{key}' must be a non-empty list of [A-Za-z0-9_.-]+ names, not {value!r}")
+
+
+def setting_text(value):
+    if value is None:
+        return "none"
+    return ",".join(value) if isinstance(value, list) else str(value)
 
 
 def load_suite(path, suites, outer=(), stack=()):
@@ -627,7 +637,7 @@ def run_plan(plan, run_dir, resolver, builder, args, suite_files):
         "programs": " ".join(plan.programs) or "<first column of the input>",
         "variants": json.dumps({v: a for v, a in plan.variants.items() if v}),
         "inputs": " ".join(inputs),
-        **{k: "none" if v is None else str(v) for k, v in settings.items()},
+        **{k: setting_text(v) for k, v in settings.items()},
         "cpus": " ".join(map(str, cpus)) or "unpinned",
         "test_run": str(args.test_run).lower(),
         "command": shlex.join(sys.argv),
@@ -671,6 +681,7 @@ def run_plan(plan, run_dir, resolver, builder, args, suite_files):
                 methods[0].name,
                 "--title",
                 plan.name,
+                *itertools.chain.from_iterable(("--metric", m) for m in settings["metrics"]),
                 os.path.relpath(run_dir, ROOT),
             ],
             cwd=ROOT,
@@ -695,7 +706,7 @@ def describe(plan, resolver):
             lines = generate_input(source, f"{where} inputs '{name}'")
             print(f"  inputs:   {name}: {len(lines)} lines from {json.dumps(source)}")
         first = first or lines[0]
-    print(f"  settings: {' '.join(f'{k}={'none' if v is None else v}' for k, v in plan.settings.items())}")
+    print(f"  settings: {' '.join(f'{k}={setting_text(v)}' for k, v in plan.settings.items())}")
     if not plan.specs:
         print("  methods:  <no builds: give them on the command line>")
         return
@@ -762,6 +773,9 @@ def parse_args():
         help="pin worker i to its own physical core, never CPU 0 [on]",
     )
     parser.add_argument("-b", "--build-mode", help="Release, RelWithDebInfo or Debug [Release]")
+    parser.add_argument(
+        "-m", "--metric", action="append", dest="metrics", help="report on this column; repeatable [runtime]"
+    )
     parser.add_argument("-o", "--output-dir", help="store the run in results/data/<dir> [<name>-<timestamp>]")
     parser.add_argument("-f", "--force", action="store_true", help="rebuild the binaries even if they exist")
     parser.add_argument("-d", "--test-run", action="store_true", help="only run the first benchmark of each input")
@@ -802,6 +816,7 @@ def main():
             "memout": args.memout,
             "pin": args.pin,
             "build_mode": args.build_mode,
+            "metrics": args.metrics,
         }.items()
         if v is not None
     }

@@ -95,8 +95,9 @@ just suite suites/quick.toml --list HEAD^ HEAD
 ```
 
 `scripts/bench.py --help` lists the options: `--timeout`, `--jobs`, `--repeat`,
-`--memout`, `--[no-]pin`, `--build-mode`, `--force` (rebuild), `--test-run`
-(first instance only), `--no-report`, `--output-dir`.
+`--memout`, `--[no-]pin`, `--build-mode`, `--metric` (a column to report on;
+repeatable), `--force` (rebuild), `--test-run` (first instance only),
+`--no-report`, `--output-dir`.
 
 ### Suites
 
@@ -116,6 +117,7 @@ repeat = 1                  # measurements per instance; the minimum is kept
 memout = 8                  # GB per instance (default: none)
 pin = true                  # one physical core per job
 build_mode = "Release"      # or RelWithDebInfo, Debug
+metrics = ["runtime"]       # the columns the report compares the methods on
 builds = ["v1.32.32=old", "devel=new"]
 
 [builds]                    # named sets, used as "@tools" here or on the command line
