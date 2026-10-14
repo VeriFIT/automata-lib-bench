@@ -17,7 +17,8 @@ die() {
     exit 1
 }
 
-usage() { {
+usage() {
+    {
         [ $# -gt 0 ] && echo "error: $1"
         echo "usage: ./scripts/clean_versions.sh [opts]"
         echo "options:"
@@ -30,25 +31,32 @@ days=30
 dry_run=false
 while [ $# -gt 0 ]; do
     case "$1" in
-        -h|--help)
+        -h | --help)
             usage
-            exit 0;;
-        -o|--older-than)
+            exit 0
+            ;;
+        -o | --older-than)
             days="$2"
-            shift 2;;
-        -n|--dry-run)
+            shift 2
+            ;;
+        -n | --dry-run)
             dry_run=true
-            shift 1;;
+            shift 1
+            ;;
         *)
             usage "unknown argument: $1"
-            exit 1;;
+            exit 1
+            ;;
     esac
 done
 [[ "$days" =~ ^[0-9]+$ ]] || die "--older-than needs a number of days, got '$days'"
 
 rootdir=$(cd "$(dirname "$0")/.." && pwd)
 cd "$rootdir"
-[ -d build/versions ] || { echo "[!] nothing built"; exit 0; }
+[ -d build/versions ] || {
+    echo "[!] nothing built"
+    exit 0
+}
 
 now=$(date +%s)
 subjects=()
@@ -65,11 +73,11 @@ for version_dir in build/versions/*/*/; do
     for stamp in "$version_dir"/*/BUILD_KEY; do
         [ -e "$stamp" ] || continue
         binary="bin/$(basename "$(dirname "$stamp")")-$slug"
-        [ ! -e "$binary" ] || binaries+=( "$binary" )
+        [ ! -e "$binary" ] || binaries+=("$binary")
         mtime=$(stat -c %Y "$stamp")
         [ "$mtime" -le "$newest" ] || newest=$mtime
     done
-    if [ "$newest" -gt 0 ] && [ $(( (now - newest) / 86400 )) -lt "$days" ]; then
+    if [ "$newest" -gt 0 ] && [ $(((now - newest) / 86400)) -lt "$days" ]; then
         continue
     fi
 
@@ -78,7 +86,7 @@ for version_dir in build/versions/*/*/; do
     [ "$dry_run" = false ] || continue
     if [ -e "$version_dir/src/.git" ] && [ -e "subjects/$subject/.git" ]; then
         git -C "subjects/$subject" worktree remove --force "$rootdir/$version_dir/src" 2>/dev/null || true
-        [[ " ${subjects[*]} " == *" $subject "* ]] || subjects+=( "$subject" )
+        [[ " ${subjects[*]} " == *" $subject "* ]] || subjects+=("$subject")
     fi
     rm -rf "$version_dir" "${binaries[@]}"
 done

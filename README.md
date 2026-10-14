@@ -1,4 +1,4 @@
-# automata-lib-bench: Pipeline for comparing finite automata libraries 
+# automata-lib-bench: Pipeline for comparing finite automata libraries
 
 This repository contains data, tools, benchmarks and scripts for comparing various libraries for handling Nondeterministic Finite Automata (NFA) and other automata types.
 This repository is meant to be used for running a set of benchmarks on a set of libraries.
@@ -31,12 +31,12 @@ git submodule update --init --recursive
 Everything is driven through [`just`](https://github.com/casey/just) recipes
 (`just --list`), so the same commands work whether or not you use Nix:
 
-* **With Nix**: `nix develop` (or let direnv do it via `.envrc`) gives you a
+- **With Nix**: `nix develop` (or let direnv do it via `.envrc`) gives you a
   shell with the C++ toolchain, `just` and `uv` already on `PATH`. The same
   operations are also exposed directly as `nix run .#<name>` (e.g.
   `nix run .#build`, `nix run .#smoke-test`) -- these just run the matching
   `just` recipe inside the flake's own devShell.
-* **Without Nix** (Linux or macOS): run `just bootstrap` once to install the
+- **Without Nix** (Linux or macOS): run `just bootstrap` once to install the
   system dependencies (a C++20 compiler, cmake, and `uv`), then proceed as below.
 
 Either way:
@@ -49,21 +49,21 @@ just suite suites/tacas-24.toml v1.32.32 devel   # the paper's experiments on tw
 
 ## Experiments
 
-An *experiment* runs **programs** on **inputs** for **builds**:
+An _experiment_ runs **programs** on **inputs** for **builds**:
 
-* a program is an `.emp` program, interpreted by every build, or a C++ program
-  `cc-programs/<name>.cc`, compiled against every build (see *What is
-  measured* below); several programs, or several *variants* of one (the same
+- a program is an `.emp` program, interpreted by every build, or a C++ program
+  `cc-programs/<name>.cc`, compiled against every build (see _What is
+  measured_ below); several programs, or several _variants_ of one (the same
   program with other arguments), are compared like builds are;
-* an input is a list of instances, one per line, each column (a `.mata` file)
+- an input is a list of instances, one per line, each column (a `.mata` file)
   becoming one argument of the program: an `inputs/*.input` file, or a list
-  generated from a glob (see *Inputs*);
-* a build is a tool at a revision, `[<tool>:]<rev>[=<label>][,<rev>...]`; a bare
+  generated from a glob (see _Inputs_);
+- a build is a tool at a revision, `[<tool>:]<rev>[=<label>][,<rev>...]`; a bare
   revision is one of `mata`. `pr/<N>` stands for GitHub pull request `N` and
   expands into `<label>-base` (the commit it branched off) and `<label>-head`
   (its tip), both fetched from the subject's remote.
 
-Every (build, program, variant) is one pycobench *method*, named
+Every (build, program, variant) is one pycobench _method_, named
 `<tool>-<label>[.<program>][.<variant>]`, so all of them are measured on exactly
 the same instances into one table. The first method is the baseline of the
 report.
@@ -144,13 +144,13 @@ and a suite composing it decides which builds it runs on. Unknown keys are
 errors, and `--list` prints every experiment as resolved: its inputs, settings
 and methods.
 
-| suite | what for |
-| ----- | -------- |
+| suite           | what for                                                               |
+| --------------- | ---------------------------------------------------------------------- |
 | `tacas-24.toml` | the experiments of the TACAS'24 paper; `@tools` compares the libraries |
-| `quick.toml` | a cross-section of the others, for checking a change |
-| `trim.toml` | `trim()` against copy + in-place trim |
-| `minimize.toml` | variants and several programs on one revision |
-| `smoke.toml` | `just smoke-test` and CI |
+| `quick.toml`    | a cross-section of the others, for checking a change                   |
+| `trim.toml`     | `trim()` against copy + in-place trim                                  |
+| `minimize.toml` | variants and several programs on one revision                          |
+| `smoke.toml`    | `just smoke-test` and CI                                               |
 
 ### Inputs
 
@@ -181,7 +181,7 @@ the experiment names no program.
 An ad hoc experiment runs into `results/data/<name>-<timestamp>/`, a suite into
 `results/data/<suite>-<timestamp>/<experiment>/`. Each holds one `.csv` per
 input and, next to each, a `<csv>-report/` directory with the tables and plots
-(see *Reporting*). It also keeps what the run was made from: the generated
+(see _Reporting_). It also keeps what the run was made from: the generated
 pycobench job config, copies of the programs, the generated input lists, and
 `manifest.json`, which ties every method to the tool, revision and commit it was
 built from and records the settings, the hashes of the programs, inputs and
@@ -198,17 +198,17 @@ function producing `bin/<tool>-<label>`, run as
 library, that wrapper is its whole interface to the rest of the pipeline, so a
 Java or a .NET library is added exactly like a C++ one. `just tools` lists them:
 
-| tool | subject | runs | what it is |
-| ---- | ------- | ---- | ---------- |
-| `mata` | `subjects/mata` | emp, cc | the C++ interpreter linked against that revision's `libmata` |
-| `pymata` | `subjects/mata` | emp | `pyinterpret`'s `MataEngine` on that revision's Python bindings |
-| `vata` | `subjects/libvata` | emp | the C++ interpreter on libvata (no determinization, minimization, concatenation) |
-| `awali` | `tarball:` awali releases | emp | the C++ interpreter on awali's dynamic library |
-| `brics` | `subjects/mata-comparison-brics` | emp | the Java interpreter on brics (no determinization, minimization) |
-| `automatalib` | `subjects/mata-comparison-brics` | emp | the Java interpreter on AutomataLib (no minimization, concatenation) |
-| `automata-net` | `subjects/automata-net` | emp | the .NET interpreter of Automata.NET (no determinization, minimization, concatenation) |
-| `fado` | `pypi:fado` | emp | `pyinterpret`'s `FadoEngine` on that FAdo release |
-| `automata-py` | `pypi:automata-lib` | emp | `pyinterpret`'s `AutomataLibEngine` on that automata-lib release |
+| tool           | subject                          | runs    | what it is                                                                             |
+| -------------- | -------------------------------- | ------- | -------------------------------------------------------------------------------------- |
+| `mata`         | `subjects/mata`                  | emp, cc | the C++ interpreter linked against that revision's `libmata`                           |
+| `pymata`       | `subjects/mata`                  | emp     | `pyinterpret`'s `MataEngine` on that revision's Python bindings                        |
+| `vata`         | `subjects/libvata`               | emp     | the C++ interpreter on libvata (no determinization, minimization, concatenation)       |
+| `awali`        | `tarball:` awali releases        | emp     | the C++ interpreter on awali's dynamic library                                         |
+| `brics`        | `subjects/mata-comparison-brics` | emp     | the Java interpreter on brics (no determinization, minimization)                       |
+| `automatalib`  | `subjects/mata-comparison-brics` | emp     | the Java interpreter on AutomataLib (no minimization, concatenation)                   |
+| `automata-net` | `subjects/automata-net`          | emp     | the .NET interpreter of Automata.NET (no determinization, minimization, concatenation) |
+| `fado`         | `pypi:fado`                      | emp     | `pyinterpret`'s `FadoEngine` on that FAdo release                                      |
+| `automata-py`  | `pypi:automata-lib`              | emp     | `pyinterpret`'s `AutomataLibEngine` on that automata-lib release                       |
 
 An operation a library lacks makes the instance fail (ERR) instead of being
 skipped. The Java and .NET interpreters read explicit alphabets only, so their
@@ -240,21 +240,21 @@ run on its own -- see `harnesses/pycobench/README.md`.
 
 ### Comparing an approach or algorithm
 
-* Implement the new approach on a branch or pull request of mata and compare
+- Implement the new approach on a branch or pull request of mata and compare
   `pr/<N>` (or `<old>=before <new>=after`): base and head are built alike and
   measured on the same instances in the same run, interleaved.
-* Operations the interpreter knows: an `.emp` program. Anything else, or a new
+- Operations the interpreter knows: an `.emp` program. Anything else, or a new
   API: a C++ program, built against both revisions -- it may use API only the
   new revision has behind its own variant, or be a different file per
   approach (`programs = [...]`).
-* Two approaches within one revision (an algorithm parameter, a flag): variants.
-* Time only the operation (`bench::measure`), not the parsing; check that the
+- Two approaches within one revision (an algorithm parameter, a flag): variants.
+- Time only the operation (`bench::measure`), not the parsing; check that the
   approaches agree (`result:` is cross-checked by the report; a C++ program
   can also fail when they disagree, like `trim.cc`).
-* Operations under a millisecond: `bench::measure_repeated`, not `--repeat`.
-* Use `--repeat 3` or more for the final numbers, keep the default pinning, and
+- Operations under a millisecond: `bench::measure_repeated`, not `--repeat`.
+- Use `--repeat 3` or more for the final numbers, keep the default pinning, and
   start with `--test-run` / `--list` to see that the right thing is measured.
-* Put the experiment into a suite once it is worth rerunning: `quick.toml`-like
+- Put the experiment into a suite once it is worth rerunning: `quick.toml`-like
   compositions are then one command for every future change.
 
 ### Measurement noise
@@ -264,7 +264,7 @@ never the core of CPU 0, so `--jobs` may not exceed the cores left; `--no-pin`
 lets the workers float. `--repeat <n>` measures every instance `n` times and
 keeps each cell's minimum (a cell that failed in any repeat stays failed); the
 per-repeat tables are kept in `<csv>-repeats/`. `--memout <GB>` caps the
-memory of every run, which is what fills the *memouts* column of the report.
+memory of every run, which is what fills the _memouts_ column of the report.
 
 ## What is measured: programs
 
@@ -362,19 +362,18 @@ just report results/data/<run> --metric words_of_lengths --timeout 10
 For each metric (`runtime` by default, `--metric all` for every metric the
 builds share) the report holds
 
-* `summary-<metric>.{md,tex,csv}` -- per build: finished runs, timeouts,
+- `summary-<metric>.{md,tex,csv}` -- per build: finished runs, timeouts,
   memouts, errors, and the mean/median/max/total of the metric, plus its PAR-2
   score when a `--timeout` is given,
-* `pairwise-<metric>.{md,tex,csv}` -- per build against the baseline: instances
+- `pairwise-<metric>.{md,tex,csv}` -- per build against the baseline: instances
   only one of them finished, how often it is faster, and the
   median/geomean/min/max speed-up where both finished,
-* `scatter-<metric>-<baseline>-vs-<build>.{pdf,png}` -- log-log scatter plot,
+- `scatter-<metric>-<baseline>-vs-<build>.{pdf,png}` -- log-log scatter plot,
   with the runs that produced no measurement drawn on the border lines,
-* `cactus-<metric>.{pdf,png}` -- instances finished within a time limit,
-* `disagreements.csv` -- instances on which the builds reported different
+- `cactus-<metric>.{pdf,png}` -- instances finished within a time limit,
+- `disagreements.csv` -- instances on which the builds reported different
   answers, when there are any.
 
 The tool behind this is `harnesses/pycobench/src/pyco_plot.py`; it reads the
 engines and metrics off the result table's header and knows nothing about
 automata, so it reports any pycobench run.
-

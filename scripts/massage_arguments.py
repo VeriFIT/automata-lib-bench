@@ -17,9 +17,7 @@ import tempfile
 import libmata.alphabets as alph
 import libmata.parser as ps
 
-CACHE_DIR = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "build", "minterm"
-)
+CACHE_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "build", "minterm")
 
 
 def peak_type(automaton: str):
@@ -54,9 +52,7 @@ def write_mintermized(automata_sources: list[str], target_dir: str, names: list[
     for aut, name in zip(parsed_automata, names):
         initial = " ".join(f"q{i}" for i in aut.initial_states)
         final = " ".join(f"q{i}" for i in aut.final_states)
-        transitions = "\n".join(
-            f"q{t.source} {t.symbol} q{t.target}" for t in aut.iterate()
-        )
+        transitions = "\n".join(f"q{t.source} {t.symbol} q{t.target}" for t in aut.iterate())
         with open(os.path.join(target_dir, name), "w") as tgt_handle:
             tgt_handle.write("@NFA-explicit\n")
             tgt_handle.write(f"%Initial {initial}\n")
@@ -71,9 +67,7 @@ def massage_automata(automata_sources: list[str]) -> list[str]:
 
     target_dir = os.path.join(CACHE_DIR, cache_key(automata_sources))
     # The index keeps an automaton passed twice from sharing one copy.
-    names = [
-        f"{i}-{os.path.basename(aut_src)}" for i, aut_src in enumerate(automata_sources)
-    ]
+    names = [f"{i}-{os.path.basename(aut_src)}" for i, aut_src in enumerate(automata_sources)]
     targets = [os.path.join(target_dir, name) for name in names]
     if not os.path.isdir(target_dir):
         os.makedirs(CACHE_DIR, exist_ok=True)

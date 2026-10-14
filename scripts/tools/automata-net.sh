@@ -86,6 +86,6 @@ read -r -a automata <<< "$massaged"
 export DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1
 "$dotnet" "$interpreter" "$cleaned" "${automata[@]}"
 EOF
-    } > "$binary"
+    } >"$binary"
     chmod +x "$binary"
 }

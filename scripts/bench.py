@@ -150,8 +150,7 @@ def load_suite(path, suites, outer=(), stack=()):
 def add_experiment(suites, experiment, where):
     known = suites.experiments.get(experiment.name)
     if known is not None and (known.source, known.table) != (experiment.source, experiment.table):
-        die(f"{where}: experiment '{experiment.name}' is defined both in {known.source} "
-            f"and {experiment.source}")
+        die(f"{where}: experiment '{experiment.name}' is defined both in {known.source} and {experiment.source}")
     suites.experiments.setdefault(experiment.name, experiment)
 
 
@@ -231,10 +230,15 @@ def make_plan(name, source, table, defaults, cli_settings, cli_specs, build_sets
             inputs.append((Path(entry).stem, entry))
             continue
         generator = {"glob": entry} if isinstance(entry, str) else entry
-        if not isinstance(generator, dict) or "glob" not in generator or \
-                set(generator) - {"glob", "columns", "combine", "name"}:
-            die(f"{where}: an input is an .input file, a glob or {{ glob = ..., columns = [...], "
-                f"combine = <k>, name = ... }}, not {entry!r}")
+        if (
+            not isinstance(generator, dict)
+            or "glob" not in generator
+            or set(generator) - {"glob", "columns", "combine", "name"}
+        ):
+            die(
+                f"{where}: an input is an .input file, a glob or {{ glob = ..., columns = [...], "
+                f"combine = <k>, name = ... }}, not {entry!r}"
+            )
         default = name if len(generated) == 1 else f"{name}-{len(inputs) + 1}"
         if not NAME.fullmatch(input_name := generator.get("name", default)):
             die(f"{where}: input name '{input_name}' is not [A-Za-z0-9_.-]+")
@@ -253,8 +257,16 @@ def make_plan(name, source, table, defaults, cli_settings, cli_specs, build_sets
     specs = cli_specs or table.get("builds") or merged_builds or []
     if not isinstance(specs, list) or not all(isinstance(s, str) for s in specs):
         die(f"{where}: 'builds' must be a list of build specs")
-    return Plan(name, source, table.get("description", ""), programs, variants or {"": []},
-                inputs, expand_sets(specs, build_sets, where), settings)
+    return Plan(
+        name,
+        source,
+        table.get("description", ""),
+        programs,
+        variants or {"": []},
+        inputs,
+        expand_sets(specs, build_sets, where),
+        settings,
+    )
 
 
 def expand_sets(specs, build_sets, where, seen=()):
@@ -303,8 +315,10 @@ def generate_input(generator, where):
         else:
             skipped += 1
     if skipped:
-        print(f"[!] {where}: skipped {skipped} of {len(matches)} matches of '{pattern}' "
-              f"whose columns do not all exist", file=sys.stderr)
+        print(
+            f"[!] {where}: skipped {skipped} of {len(matches)} matches of '{pattern}' whose columns do not all exist",
+            file=sys.stderr,
+        )
     if not lines:
         die(f"{where}: no match of '{pattern}' has all its columns")
     return lines
@@ -437,11 +451,16 @@ class Resolver:
         if self.dry or not tool.is_git:
             return Build(tool, rev, label_of(label), rev)
         subject = ROOT / tool.subject
-        result = subprocess.run(["git", "-C", str(subject), "rev-parse", "--verify", "--quiet", f"{rev}^{{commit}}"],
-                                capture_output=True, text=True)
+        result = subprocess.run(
+            ["git", "-C", str(subject), "rev-parse", "--verify", "--quiet", f"{rev}^{{commit}}"],
+            capture_output=True,
+            text=True,
+        )
         if result.returncode != 0:
-            die(f"{tool.name}: revision '{rev}' not found in {tool.subject} "
-                f"(try 'git -C {tool.subject} fetch --all --tags')")
+            die(
+                f"{tool.name}: revision '{rev}' not found in {tool.subject} "
+                f"(try 'git -C {tool.subject} fetch --all --tags')"
+            )
         return Build(tool, rev, label_of(label), result.stdout.strip())
 
     def pr_commits(self, tool, number):
@@ -462,10 +481,20 @@ class Resolver:
         remote = "origin" if "origin" in remotes else remotes[0]
         url = run_output(["git", "-C", subject, "remote", "get-url", remote]).strip()
         slug = re.sub(r"\.git$", "", re.sub(r"^(git@[^:]+:|https?://[^/]+/)", "", url))
-        base, head = run_output(["gh", "api", f"repos/{slug}/pulls/{number}",
-                                 "--jq", '"\\(.base.sha) \\(.head.sha)"']).split()
-        run_output(["git", "-C", subject, "fetch", "--quiet", remote,
-                    f"+refs/pull/{number}/head:refs/remotes/{remote}/pr/{number}"])
+        base, head = run_output(
+            ["gh", "api", f"repos/{slug}/pulls/{number}", "--jq", '"\\(.base.sha) \\(.head.sha)"']
+        ).split()
+        run_output(
+            [
+                "git",
+                "-C",
+                subject,
+                "fetch",
+                "--quiet",
+                remote,
+                f"+refs/pull/{number}/head:refs/remotes/{remote}/pr/{number}",
+            ]
+        )
         subprocess.run(["git", "-C", subject, "fetch", "--quiet", remote, base], capture_output=True)
         self.prs[key] = (base, head)
         return base, head
@@ -507,8 +536,10 @@ class Method:
     def command(self, arity):
         params = [f"${i}" for i in range(1, arity + 1)]
         if self.program.endswith(".cc"):
-            binary = (f"./build/versions/{self.build.subject_name}/{self.build.label}/"
-                      f"{self.build.tool.name}/programs/{Path(self.program).stem}")
+            binary = (
+                f"./build/versions/{self.build.subject_name}/{self.build.label}/"
+                f"{self.build.tool.name}/programs/{Path(self.program).stem}"
+            )
             return " ".join([binary, *self.args, *params])
         if self.program:
             return " ".join([f"./bin/{self.build.method}", f"./{self.program}", *self.args, *params])
@@ -522,8 +553,10 @@ def methods_of(plan, builds, in_input):
     for build, program, (variant, args) in itertools.product(builds, programs, plan.variants.items()):
         kind = "cc" if program.endswith(".cc") else "emp"
         if kind not in build.tool.runs:
-            die(f"{plan.source} [experiment.{plan.name}]: tool '{build.tool.name}' does not run "
-                f"{kind} programs (runs: {' '.join(build.tool.runs)})")
+            die(
+                f"{plan.source} [experiment.{plan.name}]: tool '{build.tool.name}' does not run "
+                f"{kind} programs (runs: {' '.join(build.tool.runs)})"
+            )
         name = build.method
         if len(programs) > 1:
             name += f".{Path(program).stem}"
@@ -545,8 +578,7 @@ def pinned_cpus(n):
         die("pinning needs Linux CPU topology in /sys; pass --no-pin")
     cores = sorted({int(re.split(r"[,-]", Path(p).read_text())[0]) for p in paths} - {0})
     if len(cores) < n:
-        die(f"--jobs {n} exceeds the {len(cores)} physical cores available for pinning; "
-            "lower --jobs or pass --no-pin")
+        die(f"--jobs {n} exceeds the {len(cores)} physical cores available for pinning; lower --jobs or pass --no-pin")
     return cores[:n]
 
 
@@ -575,8 +607,16 @@ def run_plan(plan, run_dir, resolver, builder, args, suite_files):
         (run_dir / Path(program).name).write_bytes((ROOT / program).read_bytes())
 
     cpus = pinned_cpus(settings["jobs"]) if settings["pin"] else []
-    manifest = [sys.executable, str(ROOT / "scripts/write_manifest.py"), "-o", str(run_dir / "manifest.json"),
-                "--root", str(ROOT), "--file", os.path.relpath(config, ROOT)]
+    manifest = [
+        sys.executable,
+        str(ROOT / "scripts/write_manifest.py"),
+        "-o",
+        str(run_dir / "manifest.json"),
+        "--root",
+        str(ROOT),
+        "--file",
+        os.path.relpath(config, ROOT),
+    ]
     for method in methods:
         manifest += ["--build", method.name, method.build.tool.name, method.build.rev, method.build.commit]
     for path in [*plan.programs, *inputs, *(os.path.relpath(f, ROOT) for f in suite_files)]:
@@ -597,9 +637,20 @@ def run_plan(plan, run_dir, resolver, builder, args, suite_files):
 
     print(f"[!] {plan.name}: {len(methods)} methods: {' '.join(m.name for m in methods)}")
     print(f"[!] Results: {os.path.relpath(run_dir, ROOT)} (manifest.json records the builds and settings)")
-    measure = ["bash", str(ROOT / "scripts/run_pyco.sh"), "--config", os.path.relpath(config, ROOT),
-               "--timeout", str(settings["timeout"]), "--jobs", str(settings["jobs"]),
-               "--repeat", str(settings["repeat"]), "-s", os.path.relpath(run_dir, ROOT / "results/data")]
+    measure = [
+        "bash",
+        str(ROOT / "scripts/run_pyco.sh"),
+        "--config",
+        os.path.relpath(config, ROOT),
+        "--timeout",
+        str(settings["timeout"]),
+        "--jobs",
+        str(settings["jobs"]),
+        "--repeat",
+        str(settings["repeat"]),
+        "-s",
+        os.path.relpath(run_dir, ROOT / "results/data"),
+    ]
     if args.test_run:
         measure.insert(2, "--test-run")
     if settings["memout"] is not None:
@@ -608,10 +659,24 @@ def run_plan(plan, run_dir, resolver, builder, args, suite_files):
         measure += ["--cpu-affinity", " ".join(map(str, cpus))]
     if subprocess.run([*measure, *inputs], cwd=ROOT).returncode != 0:
         die(f"{plan.name}: measuring failed")
-    if args.report and subprocess.run(
-            ["bash", str(ROOT / "scripts/report.sh"), "--timeout", str(settings["timeout"]),
-             "--baseline", methods[0].name, "--title", plan.name, os.path.relpath(run_dir, ROOT)],
-            cwd=ROOT).returncode != 0:
+    if (
+        args.report
+        and subprocess.run(
+            [
+                "bash",
+                str(ROOT / "scripts/report.sh"),
+                "--timeout",
+                str(settings["timeout"]),
+                "--baseline",
+                methods[0].name,
+                "--title",
+                plan.name,
+                os.path.relpath(run_dir, ROOT),
+            ],
+            cwd=ROOT,
+        ).returncode
+        != 0
+    ):
         die(f"{plan.name}: reporting failed")
 
 
@@ -636,8 +701,10 @@ def describe(plan, resolver):
         return
     builds = resolver.resolve(plan.specs, where)
     for method in methods_of(plan, builds, first[0].endswith(".emp")):
-        print(f"  method:   {method.name} = {method.build.tool.name}:{method.build.rev} "
-              f"{method.program or '<input>'} {' '.join(method.args)}".rstrip())
+        print(
+            f"  method:   {method.name} = {method.build.tool.name}:{method.build.rev} "
+            f"{method.program or '<input>'} {' '.join(method.args)}".rstrip()
+        )
 
 
 # === Command line ===
@@ -645,17 +712,41 @@ def describe(plan, resolver):
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        prog="scripts/bench.py", allow_abbrev=False, formatter_class=argparse.RawDescriptionHelpFormatter,
-        description=__doc__.split("\n\n", 1)[0], epilog=__doc__.split("\n\n", 1)[1])
-    parser.add_argument("targets", nargs="*", metavar="SUITE.toml | BUILD",
-                        help="suite files, and builds '[<tool>:]<rev>[=<label>][,...]', 'pr/<N>' or "
-                             "'@<build set>'; builds given here replace those of every experiment")
-    parser.add_argument("-p", "--program", action="append", default=[],
-                        help="ad hoc experiment: program to run (.emp or cc-programs/*.cc); repeatable")
-    parser.add_argument("-i", "--input", action="append", default=[],
-                        help="ad hoc experiment: .input file or glob of .mata files; repeatable")
-    parser.add_argument("-V", "--variant", action="append", default=[], metavar="NAME=ARGS",
-                        help="ad hoc experiment: run the programs also with these arguments; repeatable")
+        prog="scripts/bench.py",
+        allow_abbrev=False,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description=__doc__.split("\n\n", 1)[0],
+        epilog=__doc__.split("\n\n", 1)[1],
+    )
+    parser.add_argument(
+        "targets",
+        nargs="*",
+        metavar="SUITE.toml | BUILD",
+        help="suite files, and builds '[<tool>:]<rev>[=<label>][,...]', 'pr/<N>' or "
+        "'@<build set>'; builds given here replace those of every experiment",
+    )
+    parser.add_argument(
+        "-p",
+        "--program",
+        action="append",
+        default=[],
+        help="ad hoc experiment: program to run (.emp or cc-programs/*.cc); repeatable",
+    )
+    parser.add_argument(
+        "-i",
+        "--input",
+        action="append",
+        default=[],
+        help="ad hoc experiment: .input file or glob of .mata files; repeatable",
+    )
+    parser.add_argument(
+        "-V",
+        "--variant",
+        action="append",
+        default=[],
+        metavar="NAME=ARGS",
+        help="ad hoc experiment: run the programs also with these arguments; repeatable",
+    )
     parser.add_argument("-n", "--name", help="ad hoc experiment: its name [default: the program's]")
     parser.add_argument("--only", help="run only these experiments of the suites (comma-separated)")
     parser.add_argument("--list", action="store_true", help="print the experiments as resolved and exit")
@@ -664,8 +755,12 @@ def parse_args():
     parser.add_argument("-j", "--jobs", type=int, help="parallel jobs [6]")
     parser.add_argument("-r", "--repeat", type=int, help="measure every benchmark N times, keep the minimum [1]")
     parser.add_argument("-M", "--memout", type=int, help="memory limit per benchmark in GB [none]")
-    parser.add_argument("--pin", action=argparse.BooleanOptionalAction, default=None,
-                        help="pin worker i to its own physical core, never CPU 0 [on]")
+    parser.add_argument(
+        "--pin",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="pin worker i to its own physical core, never CPU 0 [on]",
+    )
     parser.add_argument("-b", "--build-mode", help="Release, RelWithDebInfo or Debug [Release]")
     parser.add_argument("-o", "--output-dir", help="store the run in results/data/<dir> [<name>-<timestamp>]")
     parser.add_argument("-f", "--force", action="store_true", help="rebuild the binaries even if they exist")
@@ -698,9 +793,18 @@ def main():
 
     suite_paths = [Path(t) for t in args.targets if t.endswith(".toml")]
     specs = [t for t in args.targets if not t.endswith(".toml")]
-    cli_settings = {k: v for k, v in {
-        "timeout": args.timeout, "jobs": args.jobs, "repeat": args.repeat, "memout": args.memout,
-        "pin": args.pin, "build_mode": args.build_mode}.items() if v is not None}
+    cli_settings = {
+        k: v
+        for k, v in {
+            "timeout": args.timeout,
+            "jobs": args.jobs,
+            "repeat": args.repeat,
+            "memout": args.memout,
+            "pin": args.pin,
+            "build_mode": args.build_mode,
+        }.items()
+        if v is not None
+    }
 
     suites = Suites()
     if suite_paths:
@@ -714,9 +818,18 @@ def main():
             for name in names:
                 if name not in suites.experiments:
                     die(f"no experiment '{name}' (have: {', '.join(suites.experiments)})")
-        plans = [make_plan(n, suites.experiments[n].source, resolve_extends(suites, n),
-                           suites.experiments[n].defaults, cli_settings, specs, suites.build_sets)
-                 for n in names]
+        plans = [
+            make_plan(
+                n,
+                suites.experiments[n].source,
+                resolve_extends(suites, n),
+                suites.experiments[n].defaults,
+                cli_settings,
+                specs,
+                suites.build_sets,
+            )
+            for n in names
+        ]
         run_name = "+".join(p.stem for p in suite_paths)
     else:
         if not args.input:

@@ -22,7 +22,8 @@ die() {
     exit 1
 }
 
-usage() { {
+usage() {
+    {
         [ $# -gt 0 ] && echo "error: $1"
         echo "usage: ./scripts/report.sh [opts] <run.csv|results/data/<dir>>"
         echo "options:"
@@ -46,50 +47,63 @@ args=()
 plot_args=()
 while [ $# -gt 0 ]; do
     case "$1" in
-        -h|--help)
+        -h | --help)
             usage
-            exit 0;;
-        -m|--metric)
-            plot_args+=( --metric "$2" )
-            shift 2;;
-        -t|--timeout)
-            plot_args+=( --timeout "$2" )
-            shift 2;;
-        -b|--baseline)
-            plot_args+=( --baseline "$2" )
-            shift 2;;
-        -e|--methods)
-            plot_args+=( --engines "$2" )
-            shift 2;;
-        -o|--output-dir)
-            plot_args+=( --output-dir "$2" )
-            shift 2;;
-        -F|--formats)
-            plot_args+=( --formats "$2" )
-            shift 2;;
+            exit 0
+            ;;
+        -m | --metric)
+            plot_args+=(--metric "$2")
+            shift 2
+            ;;
+        -t | --timeout)
+            plot_args+=(--timeout "$2")
+            shift 2
+            ;;
+        -b | --baseline)
+            plot_args+=(--baseline "$2")
+            shift 2
+            ;;
+        -e | --methods)
+            plot_args+=(--engines "$2")
+            shift 2
+            ;;
+        -o | --output-dir)
+            plot_args+=(--output-dir "$2")
+            shift 2
+            ;;
+        -F | --formats)
+            plot_args+=(--formats "$2")
+            shift 2
+            ;;
         --title)
-            plot_args+=( --title "$2" )
-            shift 2;;
+            plot_args+=(--title "$2")
+            shift 2
+            ;;
         -*)
             usage "unknown option: $1"
-            exit 1;;
+            exit 1
+            ;;
         *)
-            args+=( "$1" )
-            shift 1;;
+            args+=("$1")
+            shift 1
+            ;;
     esac
 done
 
-[ ${#args[@]} -eq 1 ] || { usage "need exactly one result .csv or directory"; exit 1; }
+[ ${#args[@]} -eq 1 ] || {
+    usage "need exactly one result .csv or directory"
+    exit 1
+}
 [ -x "$pyco_python" ] || die "pycobench's Python environment not found at $pyco_python. Run 'just setup-python' first."
 
 target="${args[0]}"
 csvs=()
 if [ -d "$target" ]; then
-    while IFS= read -r csv; do csvs+=( "$csv" ); done < <(find "$target" -maxdepth 1 -name '*.csv' | sort -r)
+    while IFS= read -r csv; do csvs+=("$csv"); done < <(find "$target" -maxdepth 1 -name '*.csv' | sort -r)
     [ ${#csvs[@]} -gt 0 ] || die "no .csv in $target"
 else
     [ -f "$target" ] || die "no such result file: $target"
-    csvs=( "$target" )
+    csvs=("$target")
 fi
 
 for csv in "${csvs[@]}"; do

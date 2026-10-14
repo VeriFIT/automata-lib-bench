@@ -70,8 +70,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("-o", "--output", required=True)
     parser.add_argument("--root", required=True)
-    parser.add_argument("--build", nargs=4, action="append", default=[],
-                        metavar=("METHOD", "TOOL", "REV", "COMMIT"))
+    parser.add_argument("--build", nargs=4, action="append", default=[], metavar=("METHOD", "TOOL", "REV", "COMMIT"))
     parser.add_argument("--set", nargs=2, action="append", default=[], metavar=("KEY", "VALUE"))
     parser.add_argument("--file", action="append", default=[])
     args = parser.parse_args()
@@ -83,14 +82,12 @@ def main():
         "date": datetime.datetime.now().astimezone().isoformat(timespec="seconds"),
         "settings": settings,
         "builds": [
-            {"method": method, "tool": tool, "rev": rev, "commit": commit}
-            for method, tool, rev, commit in args.build
+            {"method": method, "tool": tool, "rev": rev, "commit": commit} for method, tool, rev, commit in args.build
         ],
         "files": {path: sha256(os.path.join(args.root, path)) for path in args.file},
         "repositories": {
             name: repo_state(os.path.join(args.root, name))
-            for name in (".", "harnesses/pycobench", "harnesses/automata-program-parser",
-                         "benchmarks/nfa-bench")
+            for name in (".", "harnesses/pycobench", "harnesses/automata-program-parser", "benchmarks/nfa-bench")
         },
         "machine": {
             "host": platform.node(),

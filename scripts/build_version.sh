@@ -42,7 +42,8 @@ die() {
     exit 1
 }
 
-usage() { {
+usage() {
+    {
         [ $# -gt 0 ] && echo "error: $1"
         echo "usage: ./scripts/build_version.sh [opts] <tool> <rev> [slug]"
         echo "  <tool>                      tool to build (see --list-tools)"
@@ -116,7 +117,7 @@ libmata_prefix() {
             cmake --build "$lib/build" --parallel "$jobs" --target libmata
             cmake --install "$lib/build"
         } >&2
-        echo "$commit" > "$lib/BUILD_KEY"
+        echo "$commit" >"$lib/BUILD_KEY"
     fi
     echo "$lib/prefix"
 }
@@ -137,7 +138,7 @@ libmata_python() {
             uv venv "$venv" --python "$(command -v python3)"
             VIRTUAL_ENV="$venv" uv pip install "$dir/src/bindings/python"
         } >&2
-        echo "$commit" > "$dir/python/BUILD_KEY"
+        echo "$commit" >"$dir/python/BUILD_KEY"
     fi
     echo "$venv/bin/python"
 }
@@ -164,41 +165,53 @@ program=""
 args=()
 while [ $# -gt 0 ]; do
     case "$1" in
-        -h|--help)
+        -h | --help)
             usage
-            exit 0;;
-        -l|--list-tools)
+            exit 0
+            ;;
+        -l | --list-tools)
             for t in $(known_tools); do
                 load_tool "$t"
                 printf '%-14s %-32s %s\n' "$t" "$subject" "$runs"
             done
-            exit 0;;
-        -f|--force)
+            exit 0
+            ;;
+        -f | --force)
             force=true
-            shift 1;;
-        -b|--build-mode)
+            shift 1
+            ;;
+        -b | --build-mode)
             build_mode="$2"
-            shift 2;;
+            shift 2
+            ;;
         --libmata-prefix)
             libmata_prefix "$2"
-            exit 0;;
+            exit 0
+            ;;
         --libmata-python)
             libmata_python "$2"
-            exit 0;;
-        -p|--program)
+            exit 0
+            ;;
+        -p | --program)
             [ -f "$2" ] || die "no such program: $2"
             program="$2"
-            shift 2;;
+            shift 2
+            ;;
         -*)
             usage "unknown option: $1"
-            exit 1;;
+            exit 1
+            ;;
         *)
-            args+=( "$1" )
-            shift 1;;
+            args+=("$1")
+            shift 1
+            ;;
     esac
 done
 
-[ ${#args[@]} -ge 2 ] || { usage "missing tool or revision"; exit 1; }
+[ ${#args[@]} -ge 2 ] || {
+    usage "missing tool or revision"
+    exit 1
+}
 tool="${args[0]}"
 rev="${args[1]}"
 slug="${args[2]:-$rev}"
@@ -236,7 +249,7 @@ binary="$rootdir/bin/$tool-$slug"
 harness_state=$(git -C "$harness" rev-parse HEAD)
 git -C "$harness" diff --quiet HEAD ||
     harness_state+="+$(git -C "$harness" diff HEAD | sha256sum | cut -c1-12)"
-tool_state=$(sha256sum < "$tools_dir/$tool.sh" | cut -c1-12)
+tool_state=$(sha256sum <"$tools_dir/$tool.sh" | cut -c1-12)
 key="$commit $build_mode harness:$harness_state tool:$tool_state"
 stamp="$outdir/BUILD_KEY"
 if [ -x "$binary" ] && [ "$force" = false ] && [ "$(cat "$stamp" 2>/dev/null)" = "$key" ]; then
@@ -268,6 +281,6 @@ fi
 
 build
 
-echo "$key" > "$stamp"
+echo "$key" >"$stamp"
 echo "[done] $binary ($commit)"
 [ -z "$program" ] || build_program
