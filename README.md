@@ -47,9 +47,6 @@ just smoke-test    # the pinned mata against its parent, one instance per progra
 just suite suites/tacas-24.toml v1.32.32 devel   # the paper's experiments on two revisions
 ```
 
-The legacy pipeline (`run_all.sh`, `jobs/*.yaml`, `just build-legacy`) is kept
-as it was; everything below goes through `scripts/bench.py`.
-
 ## Experiments
 
 An *experiment* runs **programs** on **inputs** for **builds**:
