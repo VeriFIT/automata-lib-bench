@@ -10,14 +10,10 @@ indent_size = 4
 insert_final_newline = true
 trim_trailing_whitespace = true
 
-[*.{md,toml,yml,yaml,nix,html,css}]
-indent_size = 2
-
-[**/Makefile]
+[{*.cc,*.hh,*.c,*.h,*.just,justfile,Makefile,CMakeLists.txt,*.cmake,*.cmake.in}]
 indent_style = tab
 
-# clang-format (LLVM style) and cmake-format
-[{*.{cc,hh},CMakeLists.txt,*.cmake}]
+[{*.{md,toml,yml,yaml,nix,html,css,json},.clangd,.clang-format,.clang-tidy}]
 indent_size = 2
 
 # shfmt

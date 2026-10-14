@@ -21,7 +21,10 @@
             # YAML is yamlfmt's.
             includes = [ "*.md" ];
           };
-          just.enable = true;
+          just = {
+            enable = true;
+            indentation = "\t";
+          };
           # Indentation and the like from .editorconfig.
           shfmt = {
             enable = true;
@@ -32,7 +35,15 @@
             lineLength = 120;
           };
           clang-format.enable = true;
-          cmake-format.enable = true;
+          cmake-format = {
+            enable = true;
+            # The default 'CMakeLists.txt' matches only the one at the root.
+            includes = [
+              "*.cmake"
+              "CMakeLists.txt"
+              "*/CMakeLists.txt"
+            ];
+          };
         };
       };
 

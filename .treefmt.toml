@@ -39,7 +39,7 @@ options = ["-i"]
 [formatter.cmake-format]
 command = "cmake-format"
 excludes = []
-includes = ["*.cmake", "CMakeLists.txt"]
+includes = ["*.cmake", "CMakeLists.txt", "*/CMakeLists.txt"]
 options = ["--in-place"]
 
 [formatter.just]
@@ -55,7 +55,7 @@ includes = [
 ]
 options = ["-euc", """
 for f in "$@"; do
-  just --fmt --unstable  --justfile "$f"
+  just --fmt --unstable --indentation '\t' --justfile "$f"
 done
 """, "--"]
 
