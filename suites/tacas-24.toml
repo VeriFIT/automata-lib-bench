@@ -1,0 +1,85 @@
+# The experiments of the TACAS'24 paper.
+#
+#   scripts/bench.py suites/tacas-24.toml v1.32.32 devel          # two revisions of mata
+#   scripts/bench.py suites/tacas-24.toml @tools                  # mata against the other libraries
+#   scripts/bench.py suites/tacas-24.toml --only armc-incl,b-smt pr/885
+
+[defaults]
+timeout = 60
+
+[builds]
+# Every library, each through its own interpreter of the same .emp programs:
+# vata, awali, brics, automatalib and automata.net at the versions the paper's
+# comparison pinned, the others at recent ones. A library lacking an operation
+# of a program fails it (ERR) rather than skipping it.
+tools = [
+  "mata:v1.32.45-dev.57",
+  "pymata:v1.32.45-dev.57",
+  "vata:c3576a49",
+  "awali:2.3.0-230512",
+  "brics:8bca9b19",
+  "automatalib:8bca9b19",
+  "automata-net:8f02bd95",
+  "fado:2.2.0",
+  "automata-py:9.2.0",
+]
+
+[experiment.armc-incl]
+program = "emp-programs/automata_inclusion.emp"
+inputs = "inputs/bench-double-automata-inclusion.input"
+
+[experiment.b-smt]
+description = "Every instance brings its own program, in the first column of the input."
+inputs = "inputs/bench-variadic-bool-comb-ere.input"
+
+[experiment.email-filter]
+program = "emp-programs/email_filter.emp"
+inputs = "inputs/bench-quintuple-email-filter.input"
+
+[experiment.lia-explicit]
+program = "emp-programs/complement.emp"
+inputs = "inputs/bench-single-presburger-explicit-complement.input"
+
+[experiment.lia-symbolic]
+program = "emp-programs/complement.emp"
+inputs = "inputs/bench-single-presburger-complement.input"
+
+[experiment.regexps-union-det-min]
+program = "emp-programs/determinize-minimize.emp"
+inputs = "inputs/bench-regexps_union.input"
+
+[experiment.noodler-compl]
+program = "emp-programs/complement.emp"
+inputs = "inputs/bench-single-z3-noodler.input"
+
+[experiment.noodler-compl-big]
+extends = "noodler-compl"
+inputs = "inputs/bench-single-z3-noodler-big.input"
+
+[experiment.noodler-concat]
+program = "emp-programs/concat.emp"
+inputs = "inputs/bench-single-z3-noodler.input"
+
+[experiment.noodler-inter]
+program = "emp-programs/bool_comb_intersect.emp"
+inputs = "inputs/bench-variadic-z3-noodler-intersect.input"
+
+[experiment.param-inter]
+program = "emp-programs/bool_comb_inter_sat.emp"
+inputs = "inputs/bench-double-bool-comb-cox.input"
+
+[experiment.param-inter-variadic]
+program = "emp-programs/bool_comb_intersect.emp"
+inputs = "inputs/bench-variadic-bool-comb-intersect.input"
+
+[experiment.param-union]
+program = "emp-programs/bool_comb_union.emp"
+inputs = "inputs/bench-double-bool-comb-cox.input"
+
+[experiment.param-union-variadic]
+program = "emp-programs/bool_comb_intersect_union.emp"
+inputs = "inputs/bench-variadic-bool-comb-intersect.input"
+
+[experiment.param-diff]
+program = "emp-programs/bool_comb_diff_sat.emp"
+inputs = "inputs/bench-double-bool-comb-cox.input"

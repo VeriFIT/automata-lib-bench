@@ -10,3 +10,14 @@
 [submodule "subjects/mata"]
 	path = subjects/mata
 	url = git@github.com:VeriFIT/mata.git
+[submodule "subjects/mata-comparison-brics"]
+	path = subjects/mata-comparison-brics
+	url = git@github.com:VeriFIT/mata-comparison-brics.git
+[submodule "subjects/automata-net"]
+	path = subjects/automata-net
+	url = git@github.com:VeriFIT/Automata.git
+	branch = tacas24
+[submodule "subjects/libvata"]
+	path = subjects/libvata
+	url = git@github.com:jurajsic/libvata.git
+	branch = for-inclusion-testing

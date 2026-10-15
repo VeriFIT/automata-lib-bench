@@ -1,4 +1,4 @@
-# automata-lib-bench: Pipeline for comparing finite automata libraries 
+# automata-lib-bench: Pipeline for comparing finite automata libraries
 
 This repository contains data, tools, benchmarks and scripts for comparing various libraries for handling Nondeterministic Finite Automata (NFA) and other automata types.
 This repository is meant to be used for running a set of benchmarks on a set of libraries.
@@ -31,106 +31,238 @@ git submodule update --init --recursive
 Everything is driven through [`just`](https://github.com/casey/just) recipes
 (`just --list`), so the same commands work whether or not you use Nix:
 
-* **With Nix**: `nix develop` (or let direnv do it via `.envrc`) gives you a
+- **With Nix**: `nix develop` (or let direnv do it via `.envrc`) gives you a
   shell with the C++ toolchain, `just` and `uv` already on `PATH`. The same
   operations are also exposed directly as `nix run .#<name>` (e.g.
   `nix run .#build`, `nix run .#smoke-test`) -- these just run the matching
   `just` recipe inside the flake's own devShell.
-* **Without Nix** (Linux or macOS): run `just bootstrap` once to install the
-  system dependencies (a C++20 compiler, cmake, and `uv`), then proceed as below.
+- **Without Nix**: install [`just`](https://just.systems/man/en/packages.html)
+  1.38 or newer and run `just bootstrap` once. On Debian 13 (or newer) it installs
+  everything: GCC >= 14, cmake, git, Python >= 3.13 with headers, `time`, `uv`,
+  Boost (vata), a JDK and maven (brics, automatalib) and, where apt has it,
+  the .NET 8 SDK (automata-net; Debian needs
+  [Microsoft's feed](https://learn.microsoft.com/dotnet/core/install/linux-debian)).
+  Ubuntu 24.04's GCC 13, Python 3.12 and just 1.21 are too old for recent mata
+  revisions and this justfile. On macOS it installs cmake, Python and `uv`
+  only.
 
 Either way:
 
 ```shell
 just build         # syncs pycobench's Python env (binaries are built on demand)
-just smoke-test    # compares the pinned mata against its parent on one instance
-just suite suites/tacas-24.suite v1.32.32 devel   # the paper's experiments
+just smoke-test    # the pinned mata against its parent, one instance per program kind
+just suite suites/tacas-24.toml v1.32.32 devel   # the paper's experiments on two revisions
 ```
 
-A suite (`suites/*.suite`) lists experiments, one per line, as
-`<name> <program.emp or -> <input> [compare_versions options]`;
-`scripts/run_suite.sh` runs each through `scripts/compare_versions.sh` into
-`results/data/<suite>-<timestamp>/<name>/`, passing on the builds and options
-given after the suite (`--only <a,b>` picks experiments, `--list` lists them).
+## Experiments
 
-The other libraries (vata, awali, automata.net, FAdo, automata.py, automatalib,
-brics) are not built by `scripts/build_version.sh` yet. Until they are, they
-run through the legacy pipeline: `jobs/*.yaml` lists their commands,
-`just build-legacy` installs mata system-wide and builds the interpreters, and
-`./run_all.sh --help` lists the experiments.
+An _experiment_ runs **programs** on **inputs** for **builds**:
 
-## Comparing tools and versions
+- a program is an `.emp` program, interpreted by every build, or a C++ program
+  `cc-programs/<name>.cc`, compiled against every build (see _What is
+  measured_ below); several programs, or several _variants_ of one (the same
+  program with other arguments), are compared like builds are;
+- an input is a list of instances, one per line, each column (a `.mata` file)
+  becoming one argument of the program: an `inputs/*.input` file, or a list
+  generated from a glob (see _Inputs_);
+- a build is a tool at a revision, `[<tool>:]<rev>[=<label>][,<rev>...]`; a bare
+  revision is one of `mata`. `pr/<N>` stands for GitHub pull request `N` and
+  expands into `<label>-base` (the commit it branched off) and `<label>-head`
+  (its tip), both fetched from the subject's remote.
 
-One run can measure several tools and several of their revisions against each
-other. Every build is given as `<tool>:<rev>[=<label>][,<rev>...]`, where the
-revisions are any mix of tags, branches and commits present in the tool's
-subject repository; a bare revision is taken as a revision of `mata`. Without
-`=<label>` the build is named after the revision itself. The first build listed
-is the baseline the others are compared against.
+Every (build, program, variant) is one pycobench _method_, named
+`<tool>-<label>[.<program>][.<variant>]`, so all of them are measured on exactly
+the same instances into one table. The first method is the baseline of the
+report.
 
-`pr/<N>` is a revision of its own: it stands for GitHub pull request `N` and
-expands into the two builds the pull request is about, `<label>-base` (the
-commit it branched off) and `<label>-head` (its tip). Both are fetched from the
-subject's remote, so the pull request does not have to be checked out.
+An experiment is given on the command line, or in a suite:
 
 ```shell
-# three revisions of mata
+# one program, three revisions of mata
 just compare emp-programs/determinize.emp inputs/bench-regexps_union.input v1.32.32 devel 073777da
-
-# one commit against its parent, under readable names
-just compare emp-programs/words_of_lengths-10.emp inputs/bench-regexps_union.input 24a00cf0^=before 24a00cf0=after
-
-# a pull request against the commit it branched off
-just compare emp-programs/automata_inclusion.emp inputs/bench-double-automata-inclusion.input pr/885=antichain
-
+# a pull request against the commit it branched off, three repetitions
+just compare cc-programs/trim.cc inputs/bench-double-bool-comb-cox.input --repeat 3 pr/879
 # the C++ library against the Python bindings, two revisions each
-just compare emp-programs/determinize.emp inputs/bench-regexps_union.input \
-    mata:v1.32.32,devel pymata:v1.32.32,devel
+just compare emp-programs/determinize.emp inputs/bench-regexps_union.input mata:v1.32.32,devel pymata:v1.32.32,devel
+# two variants of one program on one revision, on every .mata file of a directory
+just compare cc-programs/minimize.cc 'benchmarks/nfa-bench/benchmarks/regexps/regexps_union/*.mata' \
+    --variant brzozowski=--algorithm=brzozowski --variant hopcroft=--algorithm=hopcroft devel
 
-# or, with more control: several benchmark families in one run
-./scripts/compare_versions.sh --program emp-programs/determinize.emp \
-    --input inputs/bench-regexps_union.input \
-    --input inputs/bench-single-z3-noodler.input \
-    --timeout 10 --jobs 8 --output-dir my-run \
-    mata:devel pymata:devel
+# suites: all their experiments, some of them, or just what they would run
+just suite suites/tacas-24.toml @tools
+just suite suites/quick.toml --only trim,minimize --repeat 3 pr/879
+just suite suites/quick.toml --list HEAD^ HEAD
 ```
 
-Each run gets its own directory `results/data/<run>/`, holding one `.csv` per
-input file and, next to each, a `<csv>-report/` directory with the tables and
-plots (see *Reporting* below). It also keeps what the run was made from: the
-generated pycobench job config, a copy of the `.emp` program, and
-`manifest.json`, which ties every build label to the commit it was built from
-and records the settings, the hashes of the program and inputs, the revisions of
-this repository and its harnesses, and the machine (CPU, governors, compiler).
+`scripts/bench.py --help` lists the options: `--timeout`, `--jobs`, `--repeat`,
+`--memout`, `--[no-]pin`, `--build-mode`, `--force` (rebuild), `--test-run`
+(first instance only), `--no-report`, `--output-dir`.
+
+### Suites
+
+A suite (`suites/*.toml`) names experiments, the defaults they run with, and
+sets of builds, and includes other suites:
+
+```toml
+include = [
+  "trim.toml",                                             # all its experiments
+  { path = "tacas-24.toml", only = ["armc-incl", "b-smt"] },
+]
+
+[defaults]                  # for this suite's experiments and the included ones
+timeout = 30                # seconds per instance
+jobs = 4                    # instances measured in parallel
+repeat = 1                  # measurements per instance; the minimum is kept
+memout = 8                  # GB per instance (default: none)
+pin = true                  # one physical core per job
+build_mode = "Release"      # or RelWithDebInfo, Debug
+builds = ["v1.32.32=old", "devel=new"]
+
+[builds]                    # named sets, used as "@tools" here or on the command line
+tools = ["mata:devel", "pymata:devel", "vata:for-inclusion-testing"]
+
+[experiment.inclusion]
+description = "shown by --list"
+program = "emp-programs/automata_inclusion.emp"
+inputs = "inputs/bench-double-automata-inclusion.input"
+builds = ["@tools"]         # this experiment's own
+timeout = 120               # any default, for this experiment only
+
+[experiment.inclusion-cox]
+extends = "inclusion"       # everything of 'inclusion' but what it sets
+inputs = "inputs/bench-double-bool-comb-cox.input"
+
+[experiment.minimize]
+program = "cc-programs/minimize.cc"
+variants = { brzozowski = "--algorithm=brzozowski", hopcroft = "--algorithm=hopcroft" }
+inputs = "inputs/bench-regexps_union.input"
+
+[experiment.det-vs-det-min]
+programs = ["emp-programs/determinize.emp", "emp-programs/determinize-minimize.emp"]
+inputs = "inputs/bench-regexps_union.input"
+```
+
+A setting is taken from, last one winning: the built-in default, the
+`[defaults]` of the suite defining the experiment, those of the suites including
+that one (outermost last), the experiment's own keys, and the command line.
+Builds on the command line replace the builds of every experiment. So a
+reusable experiment leaves its builds to `[defaults]` (or to the command line),
+and a suite composing it decides which builds it runs on. Unknown keys are
+errors, and `--list` prints every experiment as resolved: its inputs, settings
+and methods.
+
+| suite           | what for                                                               |
+| --------------- | ---------------------------------------------------------------------- |
+| `tacas-24.toml` | the experiments of the TACAS'24 paper; `@tools` compares the libraries |
+| `quick.toml`    | a cross-section of the others, for checking a change                   |
+| `trim.toml`     | `trim()` against copy + in-place trim                                  |
+| `minimize.toml` | variants and several programs on one revision                          |
+| `smoke.toml`    | `just smoke-test` and CI                                               |
+
+### Inputs
+
+`inputs` is one entry or a list of them, each becoming one table of the run:
+
+```toml
+inputs = [
+  "inputs/bench-regexps_union.input",                     # a list as it is
+  "benchmarks/nfa-bench/benchmarks/regexps/**/*.mata",    # one instance per file
+  # one instance per '<stem>-lhs.mata', the columns filled in with its stem
+  { glob = "benchmarks/nfa-bench/benchmarks/automata_inclusion/*-lhs.mata",
+    columns = ["{stem}-lhs.mata", "{stem}-rhs.mata"], name = "inclusion" },
+  # one instance per pair of files
+  { glob = "benchmarks/nfa-bench/benchmarks/email_filter/*.mata", combine = 2 },
+]
+```
+
+The stem is the match without the literal end of the pattern. A column may
+itself be a glob, which pycobench expands when it runs the instance, so one
+instance can take a variable number of automata (`"{stem}-*.mata"`). Matches
+missing a column are skipped and counted. Generated lists are written into the
+run (`inputs/<name>.input`), so the run records exactly what it measured. When
+an input's first column is an `.emp` program, every instance brings its own and
+the experiment names no program.
+
+### Runs
+
+An ad hoc experiment runs into `results/data/<name>-<timestamp>/`, a suite into
+`results/data/<suite>-<timestamp>/<experiment>/`. Each holds one `.csv` per
+input and, next to each, a `<csv>-report/` directory with the tables and plots
+(see _Reporting_). It also keeps what the run was made from: the generated
+pycobench job config, copies of the programs, the generated input lists, and
+`manifest.json`, which ties every method to the tool, revision and commit it was
+built from and records the settings, the hashes of the programs, inputs and
+suites, the revisions of this repository and its harnesses, and the machine
+(CPU, governors, compiler).
+
+## Tools and builds
+
+A tool is one way of running programs, defined by its own file
+`scripts/tools/<tool>.sh` (format in the header of `scripts/build_version.sh`):
+the subject it is built from, the program kinds it runs, and a `build()`
+function producing `bin/<tool>-<label>`, run as
+`<binary> <program.emp> [options] <automaton>...`. Whatever the language of the
+library, that wrapper is its whole interface to the rest of the pipeline, so a
+Java or a .NET library is added exactly like a C++ one. `just tools` lists them:
+
+| tool           | subject                          | runs    | what it is                                                                             |
+| -------------- | -------------------------------- | ------- | -------------------------------------------------------------------------------------- |
+| `mata`         | `subjects/mata`                  | emp, cc | the C++ interpreter linked against that revision's `libmata`                           |
+| `pymata`       | `subjects/mata`                  | emp     | `pyinterpret`'s `MataEngine` on that revision's Python bindings                        |
+| `vata`         | `subjects/libvata`               | emp     | the C++ interpreter on libvata (no determinization, minimization, concatenation)       |
+| `awali`        | `tarball:` awali releases        | emp     | the C++ interpreter on awali's dynamic library                                         |
+| `brics`        | `subjects/mata-comparison-brics` | emp     | the Java interpreter on brics (no determinization, minimization)                       |
+| `automatalib`  | `subjects/mata-comparison-brics` | emp     | the Java interpreter on AutomataLib (no minimization, concatenation)                   |
+| `automata-net` | `subjects/automata-net`          | emp     | the .NET interpreter of Automata.NET (no determinization, minimization, concatenation) |
+| `fado`         | `pypi:fado`                      | emp     | `pyinterpret`'s `FadoEngine` on that FAdo release                                      |
+| `automata-py`  | `pypi:automata-lib`              | emp     | `pyinterpret`'s `AutomataLibEngine` on that automata-lib release                       |
+
+An operation a library lacks makes the instance fail (ERR) instead of being
+skipped. The Java and .NET interpreters read explicit alphabets only, so their
+wrappers mintermize bitvector inputs first (`scripts/massage_arguments.py`,
+cached under `build/minterm/`). The dev shell provides their toolchains (JDK,
+Maven, .NET SDK, Boost for libvata); the wrappers embed the store paths, so keep
+the shell rooted (e.g. with nix-direnv) to keep them from being collected.
+
+A subject is a git repository (`subjects/<name>`, revisions are tags, branches
+and commits), `pypi:<package>` (revisions are versions), or `tarball:<url>`
+(revisions are versions put into the URL). Each revision of a git subject is
+checked out once into its own worktree under
+`build/versions/<subject>/<label>/src`, and every tool builds from there into
+its own directory, so revisions and tools never clobber each other and nothing
+is installed system-wide. The other libraries read their `.mata` inputs with
+a pinned mata (`parsing_mata_rev` in `scripts/build_version.sh`), which is not
+what they are compared on.
 
 A build is reused while its label still resolves to the commit it was built
-from; a label that moved (`devel`, `HEAD`, a force-pushed pull request) is
-rebuilt. `just clean [days]` removes the builds not rebuilt for `days` days
-(default 30) together with their worktrees and binaries, and failed builds
-regardless of age; `just clean 30 --dry-run` lists them.
-
-`just tools` lists the known tools:
-
-| tool | subject | what it runs |
-| ---- | ------- | ------------ |
-| `mata` | `subjects/mata` | the C++ interpreter linked against that revision's `libmata` |
-| `pymata` | `subjects/mata` | `pyinterpret`'s `MataEngine` on that revision's Python bindings |
-
-Each revision of a subject is checked out once into its own git worktree under
-`build/versions/<subject>/<label>/src`, and each tool builds from there into its
-own directory, producing `bin/<tool>-<label>`. Because `libmata` is a static
-library and the Python bindings live in a per-revision virtualenv, every binary
-carries its own revision and nothing is installed system-wide. The builds are
-then registered as separate pycobench methods, so one run measures all of them
-on identical inputs.
-
-Binaries are reused across runs; pass `--force` to rebuild. A new tool is added
-by listing it in `tool_subject()` and writing a matching `_build_<tool>`
-function in `scripts/build_version.sh`.
+from and the harness (interpreters and timing code), the tool file and the build
+mode are the same; a label that moved (`devel`, `HEAD`, a force-pushed pull
+request) is rebuilt. `just clean [days]` removes the builds not rebuilt for
+`days` days (default 30) together with their worktrees and binaries, and failed
+builds regardless of age; `just clean 30 --dry-run` lists them.
 
 `harnesses/pycobench` is itself an independent project (its own git
 repository, `pyproject.toml`/`uv.lock`, and `flake.nix`) and can be built and
 run on its own -- see `harnesses/pycobench/README.md`.
+
+### Comparing an approach or algorithm
+
+- Implement the new approach on a branch or pull request of mata and compare
+  `pr/<N>` (or `<old>=before <new>=after`): base and head are built alike and
+  measured on the same instances in the same run, interleaved.
+- Operations the interpreter knows: an `.emp` program. Anything else, or a new
+  API: a C++ program, built against both revisions -- it may use API only the
+  new revision has behind its own variant, or be a different file per
+  approach (`programs = [...]`).
+- Two approaches within one revision (an algorithm parameter, a flag): variants.
+- Time only the operation (`bench::measure`), not the parsing; check that the
+  approaches agree (`result:` is cross-checked by the report; a C++ program
+  can also fail when they disagree, like `trim.cc`).
+- Operations under a millisecond: `bench::measure_repeated`, not `--repeat`.
+- Use `--repeat 3` or more for the final numbers, keep the default pinning, and
+  start with `--test-run` / `--list` to see that the right thing is measured.
+- Put the experiment into a suite once it is worth rerunning: `quick.toml`-like
+  compositions are then one command for every future change.
 
 ### Measurement noise
 
@@ -139,13 +271,28 @@ never the core of CPU 0, so `--jobs` may not exceed the cores left; `--no-pin`
 lets the workers float. `--repeat <n>` measures every instance `n` times and
 keeps each cell's minimum (a cell that failed in any repeat stays failed); the
 per-repeat tables are kept in `<csv>-repeats/`. `--memout <GB>` caps the
-memory of every run, which is what fills the *memouts* column of the report.
+memory of every run, which is what fills the _memouts_ column of the report.
 
-## What is measured: `.emp` programs
+## What is measured: programs
 
-An experiment is a `.emp` program from `emp-programs/` run on every automaton
-of an `inputs/*.input` file. The program is a sequence of statements, one per
-line, with `#` starting a comment:
+An experiment's program is run on every instance (line) of its inputs, each
+column (a `.mata` automaton) becoming one argument, after the variant's
+arguments. A program is either an `.emp` program, run by every tool's
+interpreter, or a C++ program, built against the libmata of every compared
+revision. Both print what they measure as `<name>: <value>` lines, each
+becoming a column of the result table next to `runtime`, the wall-clock time of
+the whole process. An operation that computes an answer also prints
+`result: <answer>` (`true`/`false` for `is_empty` and `incl`), which the
+report cross-checks between the compared builds, whatever their tool. Every
+interpreter names an operation's time alike (`construction`, `intersection`,
+`uni`, `compl`, `concat`, `determinize`, `minimize`, `trim`, `emptiness_check`,
+`inclusion_check`), so a column compares it across tools.
+
+### `.emp` programs
+
+For operations the interpreters already know, and for comparing libraries: a
+program in `emp-programs/` is a sequence of statements, one per line, with `#`
+starting a comment:
 
 ```
 <var> = <op> <arg>...    # binds the result of the operation
@@ -159,17 +306,55 @@ for instance asks `mata::applications::strings::get_words_of_lengths()` for an
 accepted word of length 10 -- the automaton is read as a one-tape transducer, so
 it takes exactly one length, an n-tape NFT would take n of them.
 
-Every operation prints the time it took under its own name
-(`words_of_lengths: 0.00026`), so the result table has a column isolating the
-measured operation from parsing and construction, next to the `runtime` column
-holding the wall-clock time of the whole process. An operation that computes an
-answer also prints `result: <answer>`, which the report cross-checks between the
-compared builds.
-
+Every operation prints its time under its own name (`words_of_lengths: 0.00026`).
 A new operation is added by naming it in `STR_OP` in
 `harnesses/automata-program-parser/src/cpp/interpreter/parser.h`, dispatching it
 in `interpreter/interpreter.h`, and implementing it per tool (e.g. in
 `interpreter_mata.cc`).
+
+### C++ programs
+
+For anything else -- a new algorithm, a variant chosen by a parameter, an API
+the interpreter does not expose, an operation of microseconds: a file
+`cc-programs/<name>.cc` is a complete program, built per revision on demand
+(by tools running `cc`: `mata`). It loads its arguments and measures with the
+harness' `utils/mata_load.hh` and `utils/bench.hh`, which the interpreter uses
+as well:
+
+```cpp
+#include <mata/nfa/nfa.hh>
+
+#include "utils/bench.hh"
+#include "utils/mata_load.hh"
+
+int main(int argc, char **argv) {
+  // Times 'mataparsing' (and 'mataminterm' for bitvector alphabets).
+  const std::vector<mata::nfa::Nfa> auts{bench::load_nfas(argc, argv)};
+  const mata::nfa::Nfa det{bench::measure("determinize", [&] {
+    return mata::nfa::determinize(auts[0]);
+  })};
+  bench::report("states", det.num_of_states());
+}
+```
+
+- `bench::measure(name, f)` runs `f` once, prints its time and returns its
+  result. For operations of a millisecond or more; repeating them is
+  `--repeat`'s job, in fresh processes.
+- `bench::measure_repeated(name, f)` prints the median over batches of at least
+  10 ms of the time per call, for operations too short to time once. `f` must
+  not modify its inputs: copy them inside `f`.
+- `bench::report(name, value)` prints anything that is not a time.
+- `bench::Args` (`utils/args.hh`) reads the variant's leading
+  `--<key>=<value>` options before the automata, and fails on options the
+  program does not ask for, so a misspelt variant does not silently run the
+  default.
+
+Times are seconds of a monotonic wall clock, as in pyinterpret. A name may be
+printed several times per run, and the column holds the sum. Names are
+`[A-Za-z0-9_.-]+`, as they become columns and file names of the report.
+`cc-programs/trim.cc` (out-of-place `trim()` against copy + in-place `trim()`,
+on the inputs and on their product) and `cc-programs/minimize.cc` (an algorithm
+per variant) are complete examples.
 
 ## Reporting
 
@@ -184,19 +369,18 @@ just report results/data/<run> --metric words_of_lengths --timeout 10
 For each metric (`runtime` by default, `--metric all` for every metric the
 builds share) the report holds
 
-* `summary-<metric>.{md,tex,csv}` -- per build: finished runs, timeouts,
+- `summary-<metric>.{md,tex,csv}` -- per build: finished runs, timeouts,
   memouts, errors, and the mean/median/max/total of the metric, plus its PAR-2
   score when a `--timeout` is given,
-* `pairwise-<metric>.{md,tex,csv}` -- per build against the baseline: instances
+- `pairwise-<metric>.{md,tex,csv}` -- per build against the baseline: instances
   only one of them finished, how often it is faster, and the
   median/geomean/min/max speed-up where both finished,
-* `scatter-<metric>-<baseline>-vs-<build>.{pdf,png}` -- log-log scatter plot,
+- `scatter-<metric>-<baseline>-vs-<build>.{pdf,png}` -- log-log scatter plot,
   with the runs that produced no measurement drawn on the border lines,
-* `cactus-<metric>.{pdf,png}` -- instances finished within a time limit,
-* `disagreements.csv` -- instances on which the builds reported different
+- `cactus-<metric>.{pdf,png}` -- instances finished within a time limit,
+- `disagreements.csv` -- instances on which the builds reported different
   answers, when there are any.
 
 The tool behind this is `harnesses/pycobench/src/pyco_plot.py`; it reads the
 engines and metrics off the result table's header and knows nothing about
 automata, so it reports any pycobench run.
-

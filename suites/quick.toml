@@ -1,0 +1,20 @@
+# A quick cross-section for checking whether a change pays off, composed of
+# experiments of the other suites; give the builds on the command line:
+#
+#   scripts/bench.py suites/quick.toml pr/879
+#   scripts/bench.py suites/quick.toml --repeat 3 HEAD^=before HEAD=after
+
+include = [
+  { path = "tacas-24.toml", only = [
+    "armc-incl",
+    "param-union",
+    "regexps-union-det-min",
+  ] },
+  "trim.toml",
+  { path = "minimize.toml", only = [
+    "minimize",
+  ] },
+]
+
+[defaults]
+timeout = 30

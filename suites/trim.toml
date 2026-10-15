@@ -1,0 +1,9 @@
+# Out-of-place trim() against copy + in-place trim, per revision; give the
+# revisions on the command line:
+#
+#   scripts/bench.py suites/trim.toml pr/879
+#   scripts/bench.py suites/trim.toml v1.32.32=old devel=new
+
+[experiment.trim]
+program = "cc-programs/trim.cc"
+inputs = "inputs/bench-double-bool-comb-cox.input"

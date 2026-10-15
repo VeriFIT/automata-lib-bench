@@ -1,0 +1,37 @@
+Language: Cpp
+BasedOnStyle: LLVM
+AlignAfterOpenBracket: BlockIndent
+AlignTrailingComments:
+  Kind: Never
+AllowShortBlocksOnASingleLine: Always
+AllowShortIfStatementsOnASingleLine: AllIfsAndElse
+AllowShortLoopsOnASingleLine: true
+BinPackParameters: OnePerLine
+PackConstructorInitializers: CurrentLine
+ColumnLimit: 120
+IncludeIsMainRegex: (^((test_)|(test)))|(((_test)|(Test))?$)
+IndentCaseLabels: true
+IndentPPDirectives: BeforeHash
+IndentWidth: 4
+IndentWrappedFunctionNames: true
+InsertBraces: true
+InsertNewlineAtEOF: true
+IntegerLiteralSeparator:
+  Binary: 4
+  Decimal: 3
+  Hex: 2
+KeepEmptyLines:
+  AtStartOfBlock: false
+  AtStartOfFile: false
+LineEnding: LF
+PointerAlignment: Left
+QualifierAlignment: Left
+RemoveParentheses: ReturnStatement
+SpaceAfterCStyleCast: true
+SpaceBeforeParensOptions:
+  AfterRequiresInClause: true
+  AfterRequiresInExpression: true
+TabWidth: 4
+UseTab: Always
+# Cpp11BracedListStyle: false
+# AllowShortEnumsOnASingleLine: false

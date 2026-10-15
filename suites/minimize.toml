@@ -1,0 +1,21 @@
+# Two minimization algorithms of one revision against each other: each variant
+# is its own method, so the report compares them as it compares builds.
+#
+#   scripts/bench.py suites/minimize.toml               # the pinned mata
+#   scripts/bench.py suites/minimize.toml v1.32.32 devel  # both algorithms on both
+
+[defaults]
+builds = ["HEAD"]
+
+[experiment.minimize]
+program = "cc-programs/minimize.cc"
+variants = { brzozowski = "--algorithm=brzozowski", hopcroft = "--algorithm=hopcroft" }
+inputs = "inputs/bench-regexps_union.input"
+
+[experiment.determinize-then-minimize]
+description = "Two .emp programs on the same builds: is minimizing worth it after determinizing?"
+programs = [
+  "emp-programs/determinize.emp",
+  "emp-programs/determinize-minimize.emp",
+]
+inputs = "inputs/bench-regexps_union.input"

@@ -1,28 +1,70 @@
 {
   perSystem =
-    { lib, ... }:
-    let
-      tomlPath = ../.treefmt.toml;
-      tomlConfig =
-        if builtins.pathExists tomlPath then builtins.fromTOML (builtins.readFile tomlPath) else { };
-
-      # Remove "command" from each formatter since treefmt.programs.* handles that
-      filterCommands = lib.mapAttrs (_name: formatter: builtins.removeAttrs formatter [ "command" ]);
-      settings = tomlConfig // {
-        formatter = filterCommands (tomlConfig.formatter or { });
-      };
-    in
+    {
+      config,
+      lib,
+      pkgs,
+      ...
+    }:
     {
       treefmt = {
-        projectRootFile = ".git/config";
+        # '.git/config' is not there in a git worktree or a jj workspace, where
+        # treefmt would then format the enclosing repository instead.
+        projectRootFile = ".treefmt.toml";
+        settings.allow-missing-formatter = true;
+        programs = {
+          nixfmt.enable = true;
+          yamlfmt.enable = true;
+          taplo.enable = true;
+          prettier = {
+            enable = true;
+            # YAML is yamlfmt's.
+            includes = [ "*.md" ];
+          };
+          just = {
+            enable = true;
+            indentation = "\t";
+          };
+          # Indentation and the like from .editorconfig.
+          shfmt = {
+            enable = true;
+            useEditorConfig = true;
+          };
+          ruff-format = {
+            enable = true;
+            lineLength = 120;
+          };
+          clang-format.enable = true;
+          cmake-format = {
+            enable = true;
+            # The default 'CMakeLists.txt' matches only the one at the root.
+            includes = [
+              "*.cmake"
+              "CMakeLists.txt"
+              "*/CMakeLists.txt"
+            ];
+          };
+        };
+      };
 
-        programs.nixfmt.enable = true;
-        programs.yamlfmt.enable = true;
-        programs.taplo.enable = true;
-        programs.prettier.enable = true;
-        # TODO: Add clang-format or something similar for C++ code.
-
-        inherit settings;
+      # treefmt without Nix reads .treefmt.toml: the configuration above, with the
+      # formatters looked up on PATH.
+      apps.write-treefmt-toml = {
+        type = "app";
+        program = toString (
+          pkgs.writeShellScript "write-treefmt-toml" ''
+            set -euo pipefail
+            root="$(${lib.getExe pkgs.git} rev-parse --show-toplevel)"
+            {
+              echo "# GENERATED FILE. DO NOT EDIT."
+              echo "# Source of truth is the \`treefmt\` option in nix/treefmt.nix. Regenerate with: nix run .#write-treefmt-toml"
+              echo
+              ${lib.getExe pkgs.gnused} -E 's|/nix/store/[^/"[:space:]]+/bin/||g' ${config.treefmt.build.configFile}
+            } > "$root/.treefmt.toml"
+            ${lib.getExe config.treefmt.build.wrapper} --working-dir "$root" "$root/.treefmt.toml"
+            echo "Wrote $root/.treefmt.toml"
+          ''
+        );
       };
     };
 }

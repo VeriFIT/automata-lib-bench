@@ -4,10 +4,6 @@
 
   inputs = {
     treefmt-nix.url = "github:numtide/treefmt-nix";
-    tools-mata = {
-      url = "path:./subjects/mata";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
   };
 
   # This flake is only used for its inputs.

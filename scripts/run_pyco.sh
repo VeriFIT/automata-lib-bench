@@ -3,11 +3,12 @@
 # Runs one pycobench job config on .input files and turns each run into a
 # ';'-delimited .csv under 'results/data[/<suffix>]'.
 #
-# Called by scripts/compare_versions.sh, which generates the job config.
+# Called by scripts/bench.py, which generates the job config.
 
 set -euo pipefail
 
-usage() { {
+usage() {
+    {
         [ $# -gt 0 ] && echo "error: $1"
         echo "usage: ./scripts/run_pyco.sh [opts] <bench.input> [bench.input...]"
         echo "options:"
@@ -52,57 +53,78 @@ pyco_python="$pycobench_dir/.venv/bin/python3"
 
 while [ $# -gt 0 ]; do
     case "$1" in
-        -h|--help)
+        -h | --help)
             usage
-            exit 0;;
-        -s|--suffix)
+            exit 0
+            ;;
+        -s | --suffix)
             suffix="$2"
-            shift 2;;
-        -t|--timeout)
+            shift 2
+            ;;
+        -t | --timeout)
             timeout="$2"
-            shift 2;;
-        -c|--config)
+            shift 2
+            ;;
+        -c | --config)
             config="$2"
-            shift 2;;
-        -j|--jobs)
+            shift 2
+            ;;
+        -j | --jobs)
             jobs="$2"
-            shift 2;;
-        -v|--verbose)
-            pyco_opts+=( -v )
-            shift 1;;
-        -m|--methods)
-            pyco_opts+=( -m "$2" )
-            shift 2;;
-        -e|--exclude)
-            pyco_opts+=( -e "$2" )
-            shift 2;;
-        -d|--test-run)
+            shift 2
+            ;;
+        -v | --verbose)
+            pyco_opts+=(-v)
+            shift 1
+            ;;
+        -m | --methods)
+            pyco_opts+=(-m "$2")
+            shift 2
+            ;;
+        -e | --exclude)
+            pyco_opts+=(-e "$2")
+            shift 2
+            ;;
+        -d | --test-run)
             testrun=true
-            shift 1;;
-        -n|--test-run-count)
+            shift 1
+            ;;
+        -n | --test-run-count)
             testrun_count="$2"
-            shift 2;;
-        -a|--cpu-affinity)
-            read -r -a cpus <<< "$2"
-            pyco_opts+=( --cpu-affinity "${cpus[@]}" --bind-to-cpu )
-            shift 2;;
-        -M|--memout)
-            pyco_opts+=( --memout "$2" )
-            shift 2;;
-        -r|--repeat)
+            shift 2
+            ;;
+        -a | --cpu-affinity)
+            read -r -a cpus <<<"$2"
+            pyco_opts+=(--cpu-affinity "${cpus[@]}" --bind-to-cpu)
+            shift 2
+            ;;
+        -M | --memout)
+            pyco_opts+=(--memout "$2")
+            shift 2
+            ;;
+        -r | --repeat)
             repeat="$2"
-            shift 2;;
+            shift 2
+            ;;
         -*)
             usage "unknown option: $1"
-            exit 1;;
+            exit 1
+            ;;
         *)
-            benchmarks+=( "$1" )
-            shift 1;;
+            benchmarks+=("$1")
+            shift 1
+            ;;
     esac
 done
 
-[ -n "$config" ] || { usage "missing --config"; exit 1; }
-[ ${#benchmarks[@]} -gt 0 ] || { usage "you must specify some *.input file with benchmarks"; exit 1; }
+[ -n "$config" ] || {
+    usage "missing --config"
+    exit 1
+}
+[ ${#benchmarks[@]} -gt 0 ] || {
+    usage "you must specify some *.input file with benchmarks"
+    exit 1
+}
 [[ "$repeat" =~ ^[1-9][0-9]*$ ]] || die "--repeat needs a positive integer, got '$repeat'"
 
 # Job configs and inputs name binaries and automata relative to the root.
@@ -126,7 +148,7 @@ for benchmark in "${benchmarks[@]}"; do
     result_file="$result_dir/$job_name-$benchmark_name-$(date +%Y-%m-%d-%H-%M-%S)-timeout-$timeout-jobs-$jobs"
     log="$result_file.log"
     echo "[!] Result file: $result_file.csv"
-    number_of_params=$(( $(head -1 < "$benchmark" | tr -cd ';' | wc -c) + 1 ))
+    number_of_params=$(($(head -1 <"$benchmark" | tr -cd ';' | wc -c) + 1))
 
     # Repeats live in their own directory, which keeps report.sh, reading the
     # top level of the run, to the merged table.
@@ -137,12 +159,12 @@ for benchmark in "${benchmarks[@]}"; do
             log="$result_file-repeats/rep-$rep.log"
             echo "[!] Repeat $rep/$repeat"
         fi
-        logs+=( "$log" )
+        logs+=("$log")
         if [ "$testrun" = true ]; then
             head -n "$testrun_count" "$benchmark" |
                 pyco "$pycobench_dir/src/pycobench.py" "${pyco_opts[@]}" -j "$jobs" -c "$config" -t "$timeout" -o "$log"
         else
-            pyco "$pycobench_dir/src/pycobench.py" "${pyco_opts[@]}" -j "$jobs" -c "$config" -t "$timeout" -o "$log" < "$benchmark"
+            pyco "$pycobench_dir/src/pycobench.py" "${pyco_opts[@]}" -j "$jobs" -c "$config" -t "$timeout" -o "$log" <"$benchmark"
         fi
         PYCOBENCH_PYTHON="$pyco_python" "$pycobench_dir/src/process_pyco.sh" -o "${log%.log}.csv" -p "$number_of_params" "$log"
     done
@@ -164,4 +186,4 @@ for benchmark in "${benchmarks[@]}"; do
 done
 
 secs=$((SECONDS - start_time))
-printf "[!] Benchmarking done in %dd:%dh:%dm:%ds\n" $((secs/86400)) $((secs%86400/3600)) $((secs%3600/60)) $((secs%60))
+printf "[!] Benchmarking done in %dd:%dh:%dm:%ds\n" $((secs / 86400)) $((secs % 86400 / 3600)) $((secs % 3600 / 60)) $((secs % 60))

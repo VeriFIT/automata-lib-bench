@@ -1,6 +1,63 @@
-allow-missing-formatter = true
+# GENERATED FILE. DO NOT EDIT.
+# Source of truth is the `treefmt` option in nix/treefmt.nix. Regenerate with: nix run .#write-treefmt-toml
 
+allow-missing-formatter = true
+excludes = [
+  "*.lock",
+  "*.patch",
+  "package-lock.json",
+  "go.mod",
+  "go.sum",
+  ".gitattributes",
+  ".gitignore",
+  ".gitmodules",
+  ".hgignore",
+  ".svnignore",
+  "LICENSE",
+]
+
+[formatter.clang-format]
+command = "clang-format"
 excludes = []
+includes = [
+  "*.c",
+  "*.cc",
+  "*.cpp",
+  "*.h",
+  "*.hh",
+  "*.hpp",
+  "*.glsl",
+  "*.vert",
+  ".tesc",
+  ".tese",
+  ".geom",
+  ".frag",
+  ".comp",
+]
+options = ["-i"]
+
+[formatter.cmake-format]
+command = "cmake-format"
+excludes = []
+includes = ["*.cmake", "CMakeLists.txt", "*/CMakeLists.txt"]
+options = ["--in-place"]
+
+[formatter.just]
+command = "bash"
+excludes = []
+includes = [
+  "[Jj][Uu][Ss][Tt][Ff][Ii][Ll][Ee]",
+  "*/[Jj][Uu][Ss][Tt][Ff][Ii][Ll][Ee]",
+  ".[Jj][Uu][Ss][Tt][Ff][Ii][Ll][Ee]",
+  "*/.[Jj][Uu][Ss][Tt][Ff][Ii][Ll][Ee]",
+  "*.[Jj][Uu][Ss][Tt]",
+  "*.[Jj][Uu][Ss][Tt][Ff][Ii][Ll][Ee]",
+]
+options = ["-euc", """
+for f in "$@"; do
+  just --fmt --unstable --indentation '\t' --justfile "$f"
+done
+""", "--"]
 
 [formatter.nixfmt]
 command = "nixfmt"
@@ -8,11 +65,24 @@ excludes = []
 includes = ["*.nix"]
 options = []
 
-[formatter.yamlfmt]
-command = "yamlfmt"
+[formatter.prettier]
+command = "prettier"
 excludes = []
-includes = ["*.yaml", "*.yml"]
-options = []
+includes = ["*.md"]
+options = ["--write"]
+stdin-options = ["--stdin-filepath", "$path"]
+
+[formatter.ruff-format]
+command = "ruff"
+excludes = []
+includes = ["*.py", "*.pyi"]
+options = ["format", "--line-length", "120"]
+
+[formatter.shfmt]
+command = "shfmt"
+excludes = []
+includes = ["*.sh", "*.bash", "*.envrc", "*.envrc.*"]
+options = ["-w"]
 
 [formatter.taplo]
 command = "taplo"
@@ -20,8 +90,8 @@ excludes = []
 includes = ["*.toml"]
 options = ["format"]
 
-[formatter.prettier]
-command = "prettier"
+[formatter.yamlfmt]
+command = "yamlfmt"
 excludes = []
-includes = ["*.md", "*.mdx"]
-options = ["--write"]
+includes = ["*.yaml", "*.yml"]
+options = []
