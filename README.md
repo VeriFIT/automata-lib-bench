@@ -85,7 +85,7 @@ just compare cc-programs/trim.cc inputs/bench-double-bool-comb-cox.input --repea
 # the C++ library against the Python bindings, two revisions each
 just compare emp-programs/determinize.emp inputs/bench-regexps_union.input mata:v1.32.32,devel pymata:v1.32.32,devel
 # two variants of one program on one revision, on every .mata file of a directory
-just compare cc-programs/minimize.cc 'benchmarks/nfa-bench/benchmarks/regexps/regexps_union/*.mata' \
+just compare cc-programs/minimize.cc 'benchmarks/nfa-bench/benchmarks/nfa/regexps/regexps_union/*.mata' \
     --variant brzozowski=--algorithm=brzozowski --variant hopcroft=--algorithm=hopcroft devel
 
 # suites: all their experiments, some of them, or just what they would run
@@ -95,8 +95,9 @@ just suite suites/quick.toml --list HEAD^ HEAD
 ```
 
 `scripts/bench.py --help` lists the options: `--timeout`, `--jobs`, `--repeat`,
-`--memout`, `--[no-]pin`, `--build-mode`, `--force` (rebuild), `--test-run`
-(first instance only), `--no-report`, `--output-dir`.
+`--memout`, `--[no-]pin`, `--build-mode`, `--metric` (a column to report on;
+repeatable), `--force` (rebuild), `--test-run` (first instance only),
+`--no-report`, `--output-dir`.
 
 ### Suites
 
@@ -116,6 +117,7 @@ repeat = 1                  # measurements per instance; the minimum is kept
 memout = 8                  # GB per instance (default: none)
 pin = true                  # one physical core per job
 build_mode = "Release"      # or RelWithDebInfo, Debug
+metrics = ["runtime"]       # the columns the report compares the methods on
 builds = ["v1.32.32=old", "devel=new"]
 
 [builds]                    # named sets, used as "@tools" here or on the command line
@@ -166,12 +168,12 @@ and methods.
 ```toml
 inputs = [
   "inputs/bench-regexps_union.input",                     # a list as it is
-  "benchmarks/nfa-bench/benchmarks/regexps/**/*.mata",    # one instance per file
+  "benchmarks/nfa-bench/benchmarks/nfa/regexps/**/*.mata",    # one instance per file
   # one instance per '<stem>-lhs.mata', the columns filled in with its stem
-  { glob = "benchmarks/nfa-bench/benchmarks/automata_inclusion/*-lhs.mata",
+  { glob = "benchmarks/nfa-bench/benchmarks/nfa/automata_inclusion/*-lhs.mata",
     columns = ["{stem}-lhs.mata", "{stem}-rhs.mata"], name = "inclusion" },
   # one instance per pair of files
-  { glob = "benchmarks/nfa-bench/benchmarks/email_filter/*.mata", combine = 2 },
+  { glob = "benchmarks/nfa-bench/benchmarks/nfa/email_filter/*.mata", combine = 2 },
 ]
 ```
 
@@ -355,6 +357,35 @@ printed several times per run, and the column holds the sum. Names are
 `cc-programs/trim.cc` (out-of-place `trim()` against copy + in-place `trim()`,
 on the inputs and on their product) and `cc-programs/minimize.cc` (an algorithm
 per variant) are complete examples.
+
+### NFT programs
+
+`suites/nft.toml` measures mata's transducer (NFT) operations on
+`benchmarks/nfa-bench/benchmarks/nft`: the operands of the compositions,
+applications and projections done when solving string constraints with replace
+operations, one file per operation, one `@NFT-explicit` section per operand
+(see nfa-bench's README). The files write epsilon as `<eps>`, which mata reads
+since `f4adcabd`. Four programs take one such file; their variants compute the
+same result in different ways:
+
+| Program            | Variants (`--<option>=`)                                                | Times                              |
+| ------------------ | ----------------------------------------------------------------------- | ---------------------------------- |
+| `nft-compose.cc`   | `order=left\|right`, `between=none\|trim\|reduce`, `mode=auto\|general` | `composition`, `trim`, `reduce`    |
+| `nft-apply.cc`     | `direction=forward\|backward`, `via=apply\|compose\|word\|invert`       | `to_nfa`, `apply`                  |
+| `nft-project.cc`   | `keep=0\|1`, `then=none\|reduce\|minimize`                              | `projection`, `reduce`, `minimize` |
+| `nft-transform.cc` | `operation=invert\|trim\|reduce\|determinize`                           | the operation                      |
+
+Each reports the `states` and `transitions` of its result and, as `result`,
+whether the result is empty, which every variant must agree on and the report
+cross-checks. `cc-programs/nft.hh` loads the NFTs and times every step with
+`bench::measure_auto`: one run for a call of 10 ms or more, otherwise the median
+of repeated batches, as `measure_repeated`, since most NFT operations on these
+benchmarks take microseconds. Every step is also printed as `operation`, whose
+sum is the time of the variant's whole operation; the suite reports on it
+(`metrics = ["operation"]`), as the runtime of the process is mostly its start,
+the parsing and the repetitions. A variant that cannot compute an instance
+(`via=word` of a language of more than one word) exits with status 2, an error
+of that run.
 
 ## Reporting
 

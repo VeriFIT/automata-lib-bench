@@ -1,6 +1,6 @@
 # End-to-end check of building, measuring and reporting both kinds of program:
 # the pinned mata against its parent (`just smoke-test`, and CI). Reads only
-# benchmarks/bool_comb/cox, the one family CI checks out.
+# benchmarks/nfa/bool_comb/cox, the one family CI checks out.
 
 [defaults]
 timeout = 10
@@ -14,7 +14,7 @@ inputs = "inputs/bench-double-bool-comb-cox.input"
 [experiment.trim]
 program = "cc-programs/trim.cc"
 # The pairs '<stem>-lhs.mata;<stem>-rhs.mata' of the family, generated.
-inputs = { glob = "benchmarks/nfa-bench/benchmarks/bool_comb/cox/*-lhs.mata", columns = [
+inputs = { glob = "benchmarks/nfa-bench/benchmarks/nfa/bool_comb/cox/*-lhs.mata", columns = [
   "{stem}-lhs.mata",
   "{stem}-rhs.mata",
 ] }
