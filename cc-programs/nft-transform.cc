@@ -1,10 +1,11 @@
 // One operation on every NFT of a file. None changes whether the relation is empty, which every NFT reports.
 //
-// usage: nft-transform --operation=invert|trim|reduce|determinize <nfts.mata>
-//   invert       invert_levels(): the inverse relation
-//   trim         trim(): only the states on a path from an initial to a final state
-//   reduce       the simulation-based nft::reduce()
-//   determinize  nft::determinize()
+// usage: nft-transform --operation=invert|trim|reduce|determinize|remove-epsilon <nfts.mata>
+//   invert          invert_levels(): the inverse relation
+//   trim            trim(): only the states on a path from an initial to a final state
+//   reduce          the simulation-based nft::reduce()
+//   determinize     nft::determinize()
+//   remove-epsilon  nft::remove_epsilon(): the runs of epsilon transitions removed
 #include <set>
 #include <stdexcept>
 #include <string>
@@ -21,8 +22,10 @@ int main(int argc, char** argv) try {
 	bench::Args args{argc, argv};
 	const std::string operation{args.option("operation", "")};
 	args.done();
-	if (!std::set<std::string>{"invert", "trim", "reduce", "determinize"}.contains(operation)) {
-		throw std::invalid_argument("--operation=invert|trim|reduce|determinize is required, not '" + operation + "'");
+	if (!std::set<std::string>{"invert", "trim", "reduce", "determinize", "remove-epsilon"}.contains(operation)) {
+		throw std::invalid_argument(
+			"--operation=invert|trim|reduce|determinize|remove-epsilon is required, not '" + operation + "'"
+		);
 	}
 
 	for (const Nft& nft : bench::load_nfts(args, 1)) {
@@ -34,6 +37,7 @@ int main(int argc, char** argv) try {
 				return trimmed;
 			}
 			if (operation == "reduce") { return mata::nft::reduce(nft); }
+			if (operation == "remove-epsilon") { return mata::nft::remove_epsilon(nft); }
 			return mata::nft::determinize(nft);
 		})};
 		bench::report_result(result);

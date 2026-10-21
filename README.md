@@ -374,7 +374,7 @@ same result in different ways:
 | `nft-compose.cc`   | `order=left\|right`, `between=none\|trim\|reduce`, `mode=auto\|general` | `composition`, `trim`, `reduce`    |
 | `nft-apply.cc`     | `direction=forward\|backward`, `via=apply\|compose\|word\|invert`       | `to_nfa`, `apply`                  |
 | `nft-project.cc`   | `keep=0\|1`, `then=none\|reduce\|minimize`                              | `projection`, `reduce`, `minimize` |
-| `nft-transform.cc` | `operation=invert\|trim\|reduce\|determinize`                           | the operation                      |
+| `nft-transform.cc` | `operation=invert\|trim\|reduce\|determinize\|remove-epsilon`           | the operation                      |
 
 Each reports the `states` and `transitions` of its result and, as `result`,
 whether the result is empty, which every variant must agree on and the report

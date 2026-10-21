@@ -77,3 +77,7 @@ variants = { reduce = "--operation=reduce" }
 [experiment.nft-determinize]
 extends = "nft-invert"
 variants = { determinize = "--operation=determinize" }
+
+[experiment.nft-remove-epsilon]
+extends = "nft-invert"
+variants = { remove-epsilon = "--operation=remove-epsilon" }
