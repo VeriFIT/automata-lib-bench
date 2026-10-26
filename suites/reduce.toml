@@ -1,0 +1,41 @@
+# The simulation-based reduce() of mata, which computes the forward direct simulation with simlib: on NFAs, on the
+# NFA of the range of an NFT, and on NFTs. The reduced sizes are reported as 'result', which the report cross-checks
+# between the builds.
+#
+#   scripts/bench.py suites/reduce.toml                       # the pinned mata
+#   scripts/bench.py suites/reduce.toml --repeat 3 v1.32.32 devel
+
+[defaults]
+builds = ["HEAD"]
+metrics = ["reduce"]
+# A reduce() of a regexps_union input peaks at 5 GB: six jobs without a limit exhausted a 32 GB machine.
+timeout = 60
+jobs = 3
+memout = 7
+
+[experiment.nfa-reduce]
+description = "nfa::reduce() of every automaton of the z3-noodler and regex inputs"
+program = "cc-programs/reduce.cc"
+inputs = [
+  "inputs/bench-single-z3-noodler.input",
+  "inputs/bench-single-z3-noodler-big.input",
+  "inputs/bench-regexps_union.input",
+]
+
+# An experiment takes inputs of one arity: these are pairs, both of them reduced.
+[experiment.nfa-reduce-armc]
+extends = "nfa-reduce"
+description = "nfa::reduce() of both automata of every ARMC inclusion pair"
+inputs = "inputs/bench-double-automata-inclusion.input"
+
+[experiment.nft-range-reduce]
+description = "nfa::reduce() of the range of an NFT of a replace operation"
+program = "cc-programs/nft-project.cc"
+variants = { range-reduce = "--keep=1 --then=reduce" }
+inputs = "benchmarks/nfa-bench/benchmarks/nft/*/projection/*.mata"
+
+[experiment.nft-reduce]
+description = "nft::reduce() of an NFT of a replace operation"
+program = "cc-programs/nft-transform.cc"
+variants = { reduce = "--operation=reduce" }
+inputs = "benchmarks/nfa-bench/benchmarks/nft/*/projection/*.mata"

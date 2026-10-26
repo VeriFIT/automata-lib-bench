@@ -159,6 +159,7 @@ and methods.
 | `quick.toml`    | a cross-section of the others, for checking a change                   |
 | `trim.toml`     | `trim()` against copy + in-place trim                                  |
 | `minimize.toml` | variants and several programs on one revision                          |
+| `reduce.toml`   | `reduce()` of NFAs, of the ranges of NFTs and of NFTs                  |
 | `smoke.toml`    | `just smoke-test` and CI                                               |
 
 ### Inputs
