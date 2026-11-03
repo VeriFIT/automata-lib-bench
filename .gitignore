@@ -87,6 +87,10 @@ tests-integration/results/*.output
 # Dependency directories
 # vendor/
 
+# Environent files.
+.env.private
+.envrc.private
+
 /bin/
 
 # Unresolved benchmark data of unknown provenance -- see project history/notes.
