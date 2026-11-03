@@ -66,7 +66,10 @@
                     maven
                     dotnet-sdk_8
 
-                    # git
+                    git
+                    jujutsu
+                    # pycobench measures every run with GNU time.
+                    time
                     # coreutils
                     # gnumake
                     # pkgs.gcc
