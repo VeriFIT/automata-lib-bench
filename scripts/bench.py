@@ -425,10 +425,12 @@ def run_output(cmd, **kwargs):
 class Resolver:
     """Turns build specs into builds, resolving revisions to commits once per run."""
 
-    def __init__(self, dry=False):
+    def __init__(self, dry=False, fetch_from=()):
         self.dry = dry
         self.tools = known_tools()
         self.prs = {}
+        self.fetch_from = tuple(fetch_from)
+        self.fetched = set()
 
     def resolve(self, specs, where):
         builds = []
@@ -457,21 +459,45 @@ class Resolver:
                 die(f"{where}: two builds are both labelled '{method}'; give one '<rev>=<label>'")
         return builds
 
+    def fetch(self, subject):
+        """Fetches the branches and tags of every --fetch-from clone into @subject once per run, the branches as
+        'fetched/<branch>'."""
+        if subject in self.fetched:
+            return
+        for repo in self.fetch_from:
+            source = str(Path(repo).resolve()) if Path(repo).exists() else repo
+            run_output(
+                [
+                    "git",
+                    "-C",
+                    str(subject),
+                    "fetch",
+                    "--quiet",
+                    "--tags",
+                    source,
+                    "+refs/heads/*:refs/remotes/fetched/*",
+                ]
+            )
+        self.fetched.add(subject)
+
     def build(self, tool, rev, label):
         if self.dry or not tool.is_git:
             return Build(tool, rev, label_of(label), rev)
         subject = ROOT / tool.subject
-        result = subprocess.run(
-            ["git", "-C", str(subject), "rev-parse", "--verify", "--quiet", f"{rev}^{{commit}}"],
-            capture_output=True,
-            text=True,
-        )
-        if result.returncode != 0:
-            die(
-                f"{tool.name}: revision '{rev}' not found in {tool.subject} "
-                f"(try 'git -C {tool.subject} fetch --all --tags')"
+        self.fetch(subject)
+        # A branch of a --fetch-from clone first, then whatever git resolves.
+        for candidate in (f"fetched/{rev}", rev):
+            result = subprocess.run(
+                ["git", "-C", str(subject), "rev-parse", "--verify", "--quiet", f"{candidate}^{{commit}}"],
+                capture_output=True,
+                text=True,
             )
-        return Build(tool, rev, label_of(label), result.stdout.strip())
+            if result.returncode == 0:
+                return Build(tool, rev, label_of(label), result.stdout.strip())
+        die(
+            f"{tool.name}: revision '{rev}' not found in {tool.subject} "
+            f"(try 'git -C {tool.subject} fetch --all --tags', or --fetch-from <clone> for an unpublished one)"
+        )
 
     def pr_commits(self, tool, number):
         """The base and the head of pull request @number of the tool's subject. Both are fetched,
@@ -526,7 +552,8 @@ class Builder:
             cmd.append("--force")
         if program:
             cmd += ["--program", program]
-        cmd += [build.tool.name, build.rev, build.label]
+        # The commit, not the revision: a branch of a --fetch-from clone is known to the subject as 'fetched/<rev>'.
+        cmd += [build.tool.name, build.commit, build.label]
         if subprocess.run(cmd, cwd=ROOT).returncode != 0:
             die(f"building {build.method} failed")
         self.done |= {key, (build, build_mode, None)}
@@ -777,6 +804,15 @@ def parse_args():
         "-m", "--metric", action="append", dest="metrics", help="report on this column; repeatable [runtime]"
     )
     parser.add_argument("-o", "--output-dir", help="store the run in results/data/<dir> [<name>-<timestamp>]")
+    parser.add_argument(
+        "-F",
+        "--fetch-from",
+        action="append",
+        default=[],
+        metavar="REPO",
+        help="fetch the branches and tags of this clone (path or URL) into the subjects first, so that its "
+        "unpublished branches can be built; repeatable",
+    )
     parser.add_argument("-f", "--force", action="store_true", help="rebuild the binaries even if they exist")
     parser.add_argument("-d", "--test-run", action="store_true", help="only run the first benchmark of each input")
     parser.add_argument("-R", "--no-report", dest="report", action="store_false", help="skip the plots and tables")
@@ -863,7 +899,7 @@ def main():
             describe(plan, resolver)
         return
 
-    resolver = Resolver()
+    resolver = Resolver(fetch_from=args.fetch_from)
     builder = Builder(args.force)
     stamp = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
     base = ROOT / "results/data" / (args.output_dir or f"{run_name}-{stamp}")

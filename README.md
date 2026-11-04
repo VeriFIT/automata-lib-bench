@@ -252,7 +252,10 @@ run on its own -- see `harnesses/pycobench/README.md`.
 
 - Implement the new approach on a branch or pull request of mata and compare
   `pr/<N>` (or `<old>=before <new>=after`): base and head are built alike and
-  measured on the same instances in the same run, interleaved.
+  measured on the same instances in the same run, interleaved. A branch not
+  pushed anywhere yet is fetched from the clone it lives in with
+  `--fetch-from <clone>` (e.g. `--fetch-from ../mata devel my-branch=new`):
+  the branches of the clone resolve first, then the subject's own revisions.
 - Operations the interpreter knows: an `.emp` program. Anything else, or a new
   API: a C++ program, built against both revisions -- it may use API only the
   new revision has behind its own variant, or be a different file per
