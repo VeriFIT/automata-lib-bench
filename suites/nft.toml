@@ -32,6 +32,21 @@ program = "cc-programs/nft-compose.cc"
 variants = { left = "--order=left", right = "--order=right", left-trim = "--order=left --between=trim", left-reduce = "--order=left --between=reduce", left-fast = "--order=left --jump=no-jump" }
 inputs = "benchmarks/nfa-bench/benchmarks/nft/*/composition/sequence/*.mata"
 
+# The compositions z3-noodler builds for the length constraints of transducers: NFTs of up to five levels, the
+# synchronized level kept and the result trimmed, as z3-noodler composes them. Most of the states a composition
+# reaches cannot reach a final state.
+[experiment.nft-length-formula-1-0]
+description = "The compositions of the length formulas of z3-noodler that synchronize level 1 with level 0"
+program = "cc-programs/nft-compose.cc"
+variants = { fast = "--jump=no-jump --sync=1,0 --project-out=no --trim=yes" }
+inputs = "benchmarks/nfa-bench/benchmarks/nft/*/composition/length_formula/sync_1_0/*.mata"
+
+[experiment.nft-length-formula-0-0]
+description = "The compositions of the length formulas of z3-noodler that synchronize level 0 with level 0"
+program = "cc-programs/nft-compose.cc"
+variants = { fast = "--jump=no-jump --sync=0,0 --project-out=no --trim=yes" }
+inputs = "benchmarks/nfa-bench/benchmarks/nft/*/composition/length_formula/sync_0_0/*.mata"
+
 [experiment.nft-apply-literal]
 description = "The image of a literal: Nft::apply() of its NFA or of its word, or a composition with its identity"
 program = "cc-programs/nft-apply.cc"
