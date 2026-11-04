@@ -13,10 +13,12 @@ builds = ["HEAD"]
 # parsing and the repetitions of short operations.
 metrics = ["operation"]
 
+# z3-noodler composes and applies with JumpMode::NoJump, for which CompositionMode::Auto picks the fast composition;
+# with mata's default JumpMode::RepeatSymbol, Auto is the general composition. The '-fast' variants are z3-noodler's.
 [experiment.nft-compose-pair]
-description = "Composition of two NFTs: the general algorithm against the one mata picks"
+description = "Composition of two NFTs: the general algorithm against the fast one z3-noodler takes"
 program = "cc-programs/nft-compose.cc"
-variants = { auto = "--mode=auto", general = "--mode=general" }
+variants = { fast = "--jump=no-jump", general = "--mode=general" }
 inputs = "benchmarks/nfa-bench/benchmarks/nft/*/composition/pair/*.mata"
 
 [experiment.nft-construct-replace]
@@ -27,31 +29,31 @@ inputs = "benchmarks/nfa-bench/benchmarks/nft/*/composition/construct_replace/*.
 [experiment.nft-compose-sequence]
 description = "A chain of compositions: folded from the left or the right, reducing the intermediate NFTs or not"
 program = "cc-programs/nft-compose.cc"
-variants = { left = "--order=left", right = "--order=right", left-trim = "--order=left --between=trim", left-reduce = "--order=left --between=reduce" }
+variants = { left = "--order=left", right = "--order=right", left-trim = "--order=left --between=trim", left-reduce = "--order=left --between=reduce", left-fast = "--order=left --jump=no-jump" }
 inputs = "benchmarks/nfa-bench/benchmarks/nft/*/composition/sequence/*.mata"
 
 [experiment.nft-apply-literal]
 description = "The image of a literal: Nft::apply() of its NFA or of its word, or a composition with its identity"
 program = "cc-programs/nft-apply.cc"
-variants = { apply = "--direction=forward --via=apply", compose = "--direction=forward --via=compose", word = "--direction=forward --via=word" }
+variants = { apply = "--direction=forward --via=apply", apply-fast = "--direction=forward --via=apply --jump=no-jump", compose = "--direction=forward --via=compose", word = "--direction=forward --via=word" }
 inputs = "benchmarks/nfa-bench/benchmarks/nft/*/apply_literal/*.mata"
 
 [experiment.nft-apply-literal-backward]
 description = "The preimage of a literal: Nft::apply() on the output level, of the inverted NFT, or a composition"
 program = "cc-programs/nft-apply.cc"
-variants = { apply = "--direction=backward --via=apply", compose = "--direction=backward --via=compose", word = "--direction=backward --via=word", invert = "--direction=backward --via=invert" }
+variants = { apply = "--direction=backward --via=apply", apply-fast = "--direction=backward --via=apply --jump=no-jump", compose = "--direction=backward --via=compose", word = "--direction=backward --via=word", invert = "--direction=backward --via=invert" }
 inputs = "benchmarks/nfa-bench/benchmarks/nft/*/apply_literal_backward/*.mata"
 
 [experiment.nft-apply-language]
 description = "The image of a language: Nft::apply() of its NFA, or a composition with its identity"
 program = "cc-programs/nft-apply.cc"
-variants = { apply = "--direction=forward --via=apply", compose = "--direction=forward --via=compose" }
+variants = { apply = "--direction=forward --via=apply", apply-fast = "--direction=forward --via=apply --jump=no-jump", compose = "--direction=forward --via=compose" }
 inputs = "benchmarks/nfa-bench/benchmarks/nft/*/apply_language/*.mata"
 
 [experiment.nft-apply-language-backward]
 description = "The preimage of a language: Nft::apply() on the output level, of the inverted NFT, or a composition"
 program = "cc-programs/nft-apply.cc"
-variants = { apply = "--direction=backward --via=apply", compose = "--direction=backward --via=compose", invert = "--direction=backward --via=invert" }
+variants = { apply = "--direction=backward --via=apply", apply-fast = "--direction=backward --via=apply --jump=no-jump", compose = "--direction=backward --via=compose", invert = "--direction=backward --via=invert" }
 inputs = "benchmarks/nfa-bench/benchmarks/nft/*/apply_language_backward/*.mata"
 
 [experiment.nft-project]

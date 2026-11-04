@@ -372,12 +372,18 @@ operations, one file per operation, one `@NFT-explicit` section per operand
 since `f4adcabd`. Four programs take one such file; their variants compute the
 same result in different ways:
 
-| Program            | Variants (`--<option>=`)                                                | Times                              |
-| ------------------ | ----------------------------------------------------------------------- | ---------------------------------- |
-| `nft-compose.cc`   | `order=left\|right`, `between=none\|trim\|reduce`, `mode=auto\|general` | `composition`, `trim`, `reduce`    |
-| `nft-apply.cc`     | `direction=forward\|backward`, `via=apply\|compose\|word\|invert`       | `to_nfa`, `apply`                  |
-| `nft-project.cc`   | `keep=0\|1`, `then=none\|reduce\|minimize`                              | `projection`, `reduce`, `minimize` |
-| `nft-transform.cc` | `operation=invert\|trim\|reduce\|determinize\|remove-epsilon`           | the operation                      |
+| Program            | Variants (`--<option>=`)                                                                                               | Times                              |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| `nft-compose.cc`   | `order=left\|right`, `between=none\|trim\|reduce`, `mode=auto\|general`, `jump`, `sync=<l>,<r>`, `project-out=yes\|no` | `composition`, `trim`, `reduce`    |
+| `nft-apply.cc`     | `direction=forward\|backward`, `via=apply\|compose\|word\|invert`, `jump`                                              | `to_nfa`, `apply`                  |
+| `nft-project.cc`   | `keep=0\|1`, `then=none\|reduce\|minimize`                                                                             | `projection`, `reduce`, `minimize` |
+| `nft-transform.cc` | `operation=invert\|trim\|reduce\|determinize\|remove-epsilon`                                                          | the operation                      |
+
+`jump=repeat-symbol|no-jump` is the `mata::nft::JumpMode` of the operation. With mata's default, `repeat-symbol`,
+`mode=auto` composes by the general algorithm; z3-noodler composes and applies with `no-jump`, for which it takes the
+fast one, measured by the suite's `fast` and `*-fast` variants. `sync` (default `1,0`) gives the synchronized level of
+each NFT and `project-out` whether the result drops it, as for the compositions of NFTs of more than two levels that
+z3-noodler builds for length constraints.
 
 Each reports the `states` and `transitions` of its result and, as `result`,
 whether the result is empty, which every variant must agree on and the report
