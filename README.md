@@ -378,6 +378,7 @@ same result in different ways:
 | `nft-apply.cc`     | `direction=forward\|backward`, `via=apply\|compose\|word\|invert`, `jump`                                              | `to_nfa`, `apply`                  |
 | `nft-project.cc`   | `keep=0\|1`, `then=none\|reduce\|minimize`                                                                             | `projection`, `reduce`, `minimize` |
 | `nft-transform.cc` | `operation=invert\|trim\|reduce\|determinize\|remove-epsilon`                                                          | the operation                      |
+| `nft-inclusion.cc` | `operation=included\|equivalent`, `against=reduce\|next`, `jump`                                                       | the operation                      |
 
 `jump=repeat-symbol|no-jump` is the `mata::nft::JumpMode` of the operation. With mata's default, `repeat-symbol`,
 `mode=auto` composes by the general algorithm, or, since VeriFIT/mata#996, by the fast one when neither NFT has a jump,
