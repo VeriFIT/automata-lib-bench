@@ -694,28 +694,33 @@ def run_plan(plan, run_dir, resolver, builder, args, suite_files):
         measure += ["--memout", str(settings["memout"])]
     if cpus:
         measure += ["--cpu-affinity", " ".join(map(str, cpus))]
+    # Other experiments of the suite, or earlier runs given the same --output-dir, leave their tables in run_dir too,
+    #  measured by other methods: report only what this one wrote.
+    earlier = set(run_dir.glob("*.csv"))
     if subprocess.run([*measure, *inputs], cwd=ROOT).returncode != 0:
         die(f"{plan.name}: measuring failed")
-    if (
-        args.report
-        and subprocess.run(
-            [
-                "bash",
-                str(ROOT / "scripts/report.sh"),
-                "--timeout",
-                str(settings["timeout"]),
-                "--baseline",
-                methods[0].name,
-                "--title",
-                plan.name,
-                *itertools.chain.from_iterable(("--metric", m) for m in settings["metrics"]),
-                os.path.relpath(run_dir, ROOT),
-            ],
-            cwd=ROOT,
-        ).returncode
-        != 0
-    ):
-        die(f"{plan.name}: reporting failed")
+    if not args.report:
+        return
+    for table in sorted(set(run_dir.glob("*.csv")) - earlier):
+        if (
+            subprocess.run(
+                [
+                    "bash",
+                    str(ROOT / "scripts/report.sh"),
+                    "--timeout",
+                    str(settings["timeout"]),
+                    "--baseline",
+                    methods[0].name,
+                    "--title",
+                    plan.name,
+                    *itertools.chain.from_iterable(("--metric", m) for m in settings["metrics"]),
+                    os.path.relpath(table, ROOT),
+                ],
+                cwd=ROOT,
+            ).returncode
+            != 0
+        ):
+            die(f"{plan.name}: reporting failed")
 
 
 def describe(plan, resolver):
