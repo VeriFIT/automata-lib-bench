@@ -13,12 +13,13 @@ builds = ["HEAD"]
 # parsing and the repetitions of short operations.
 metrics = ["operation"]
 
-# z3-noodler composes and applies with JumpMode::NoJump, for which CompositionMode::Auto picks the fast composition;
-# with mata's default JumpMode::RepeatSymbol, Auto is the general composition. The '-fast' variants are z3-noodler's.
+# z3-noodler composes and applies with JumpMode::NoJump, for which CompositionMode::Auto picks the fast composition.
+# The '-fast' variants are z3-noodler's; 'default' and 'apply' are the calls with mata's default arguments
+# (JumpMode::RepeatSymbol, CompositionMode::Auto), whose algorithm depends on the mata version and the NFTs.
 [experiment.nft-compose-pair]
-description = "Composition of two NFTs: the general algorithm against the fast one z3-noodler takes"
+description = "Composition of two NFTs: mata's default call, the fast algorithm z3-noodler takes, and the general one"
 program = "cc-programs/nft-compose.cc"
-variants = { fast = "--jump=no-jump", general = "--mode=general" }
+variants = { default = "--mode=auto", fast = "--jump=no-jump", general = "--mode=general" }
 inputs = "benchmarks/nfa-bench/benchmarks/nft/*/composition/pair/*.mata"
 
 [experiment.nft-construct-replace]

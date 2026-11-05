@@ -380,8 +380,9 @@ same result in different ways:
 | `nft-transform.cc` | `operation=invert\|trim\|reduce\|determinize\|remove-epsilon`                                                          | the operation                      |
 
 `jump=repeat-symbol|no-jump` is the `mata::nft::JumpMode` of the operation. With mata's default, `repeat-symbol`,
-`mode=auto` composes by the general algorithm; z3-noodler composes and applies with `no-jump`, for which it takes the
-fast one, measured by the suite's `fast` and `*-fast` variants. `sync` (default `1,0`) gives the synchronized level of
+`mode=auto` composes by the general algorithm, or, since VeriFIT/mata#996, by the fast one when neither NFT has a jump,
+EPSILON or DONT_CARE: the suite's `default` variant measures that call. z3-noodler composes and applies with `no-jump`,
+for which `auto` takes the fast algorithm, measured by the suite's `fast` and `*-fast` variants. `sync` (default `1,0`) gives the synchronized level of
 each NFT, `project-out` whether the result drops it, and `trim=yes` trims every composition (by mata's
 `CompositionNormalization::Trim` where it has it), as z3-noodler does with the compositions of NFTs of more than two
 levels it builds for length constraints, which the `nft-length-formula-*` experiments measure.
