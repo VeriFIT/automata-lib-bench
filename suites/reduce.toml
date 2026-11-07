@@ -39,3 +39,16 @@ description = "nft::reduce() of an NFT of a replace operation"
 program = "cc-programs/nft-transform.cc"
 variants = { reduce = "--operation=reduce" }
 inputs = "benchmarks/nfa-bench/benchmarks/nft/*/projection/*.mata"
+
+# The arguments of the reduce() calls of z3-noodler, dumped from it on the families where the reductions cost the most:
+# the length formulas of transducers (transducer-plus) and the products of equations (omark), among others.
+[experiment.nfa-reduce-noodler]
+description = "nfa::reduce() of the automata z3-noodler reduces: equation products, images of transducers, and others"
+program = "cc-programs/reduce.cc"
+inputs = "benchmarks/nfa-bench/benchmarks/nfa/z3-noodler-reduce/*/*.mata"
+
+[experiment.nft-reduce-noodler]
+description = "nft::reduce() of the NFTs z3-noodler reduces: the length formulas of transducers and replace transducers"
+program = "cc-programs/nft-transform.cc"
+variants = { reduce = "--operation=reduce" }
+inputs = "benchmarks/nfa-bench/benchmarks/nft/*/reduce/*.mata"
