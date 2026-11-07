@@ -36,6 +36,9 @@ set -euo pipefail
 # The dev shell exports the site-packages of its python3.14; leaked into the
 # python3.13 venvs' builds it mixes the two (wheel tag 'cp313-cp314').
 unset PYTHONPATH
+# A user's uv.toml (e.g. '[pip] all-extras = true') would change or break the
+# 'uv pip install' of the Python tools.
+export UV_NO_CONFIG=1
 
 die() {
     echo "error: $*" >&2
