@@ -169,6 +169,7 @@ and methods.
 ```toml
 inputs = [
   "inputs/bench-regexps_union.input",                     # a list as it is
+  "benchmarks/nfa-bench/benchmarks/nfa/regexps/ftp-95_ftp-95.mata",  # one automaton, one instance
   "benchmarks/nfa-bench/benchmarks/nfa/regexps/**/*.mata",    # one instance per file
   # one instance per '<stem>-lhs.mata', the columns filled in with its stem
   { glob = "benchmarks/nfa-bench/benchmarks/nfa/automata_inclusion/*-lhs.mata",
@@ -178,7 +179,9 @@ inputs = [
 ]
 ```
 
-The stem is the match without the literal end of the pattern. A column may
+The stem is the match without the literal end of the pattern. A single `.mata`
+file is an instance of its own (written into the run as a one-line list), which
+is the shortest way to look at one automaton. A column may
 itself be a glob, which pycobench expands when it runs the instance, so one
 instance can take a variable number of automata (`"{stem}-*.mata"`). Matches
 missing a column are skipped and counted. Generated lists are written into the

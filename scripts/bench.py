@@ -237,7 +237,11 @@ def make_plan(name, source, table, defaults, cli_settings, cli_specs, build_sets
         if isinstance(entry, str) and not WILDCARD.search(entry):
             if not (ROOT / entry).is_file():
                 die(f"{where}: no such input file: {entry}")
-            inputs.append((Path(entry).stem, entry))
+            if entry.endswith(".mata"):
+                # One automaton is an instance of its own, written into the run as a one-line list.
+                inputs.append((Path(entry).stem, {"glob": entry}))
+            else:
+                inputs.append((Path(entry).stem, entry))
             continue
         generator = {"glob": entry} if isinstance(entry, str) else entry
         if (
@@ -780,7 +784,7 @@ def parse_args():
         "--input",
         action="append",
         default=[],
-        help="ad hoc experiment: .input file or glob of .mata files; repeatable",
+        help="ad hoc experiment: .input file, a single .mata file or a glob of .mata files; repeatable",
     )
     parser.add_argument(
         "-V",
