@@ -1,6 +1,5 @@
-# The simulation-based reduce() of mata, which computes the forward direct simulation with simlib: on NFAs, on the
-# NFA of the range of an NFT, and on NFTs. The reduced sizes are reported as 'result', which the report cross-checks
-# between the builds.
+# The simulation-based and residual reduce() of mata: on NFAs, on the NFA of the range of an NFT, and on NFTs.
+# The reduced sizes are reported as 'result', which the report cross-checks between the builds of one variant.
 #
 #   scripts/bench.py suites/reduce.toml                       # the pinned mata
 #   scripts/bench.py suites/reduce.toml --repeat 3 v1.32.32 devel
@@ -46,6 +45,16 @@ inputs = "benchmarks/nfa-bench/benchmarks/nft/*/projection/*.mata"
 description = "nfa::reduce() of the automata z3-noodler reduces: equation products, images of transducers, and others"
 program = "cc-programs/reduce.cc"
 inputs = "benchmarks/nfa-bench/benchmarks/nfa/z3-noodler-reduce/*/*.mata"
+
+[experiment.nfa-residual-after-reduce-noodler]
+extends = "nfa-reduce-noodler"
+description = "Forward residual-after nfa::reduce() of the automata z3-noodler reduces"
+variants = { residual-after = "--algorithm=residual-after" }
+
+[experiment.nfa-residual-with-reduce-noodler]
+extends = "nfa-reduce-noodler"
+description = "Forward residual-with nfa::reduce() of the automata z3-noodler reduces"
+variants = { residual-with = "--algorithm=residual-with" }
 
 [experiment.nft-reduce-noodler]
 description = "nft::reduce() of the NFTs z3-noodler reduces: the length formulas of transducers and replace transducers"
