@@ -160,6 +160,7 @@ and methods.
 | `trim.toml`     | `trim()` against copy + in-place trim                                  |
 | `minimize.toml` | variants and several programs on one revision                          |
 | `reduce.toml`   | `reduce()` of NFAs, of the ranges of NFTs and of NFTs                  |
+| `bdd.toml`      | mata's NFTs as automata with BDDs on transitions against BDD libraries |
 | `smoke.toml`    | `just smoke-test` and CI                                               |
 
 ### Inputs
@@ -208,17 +209,20 @@ function producing `bin/<tool>-<label>`, run as
 library, that wrapper is its whole interface to the rest of the pipeline, so a
 Java or a .NET library is added exactly like a C++ one. `just tools` lists them:
 
-| tool           | subject                          | runs    | what it is                                                                             |
-| -------------- | -------------------------------- | ------- | -------------------------------------------------------------------------------------- |
-| `mata`         | `subjects/mata`                  | emp, cc | the C++ interpreter linked against that revision's `libmata`                           |
-| `pymata`       | `subjects/mata`                  | emp     | `pyinterpret`'s `MataEngine` on that revision's Python bindings                        |
-| `vata`         | `subjects/libvata`               | emp     | the C++ interpreter on libvata (no determinization, minimization, concatenation)       |
-| `awali`        | `tarball:` awali releases        | emp     | the C++ interpreter on awali's dynamic library                                         |
-| `brics`        | `subjects/mata-comparison-brics` | emp     | the Java interpreter on brics (no determinization, minimization)                       |
-| `automatalib`  | `subjects/mata-comparison-brics` | emp     | the Java interpreter on AutomataLib (no minimization, concatenation)                   |
-| `automata-net` | `subjects/automata-net`          | emp     | the .NET interpreter of Automata.NET (no determinization, minimization, concatenation) |
-| `fado`         | `pypi:fado`                      | emp     | `pyinterpret`'s `FadoEngine` on that FAdo release                                      |
-| `automata-py`  | `pypi:automata-lib`              | emp     | `pyinterpret`'s `AutomataLibEngine` on that automata-lib release                       |
+| tool           | subject                          | runs    | what it is                                                                                                             |
+| -------------- | -------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `mata`         | `subjects/mata`                  | emp, cc | the C++ interpreter linked against that revision's `libmata`                                                           |
+| `pymata`       | `subjects/mata`                  | emp     | `pyinterpret`'s `MataEngine` on that revision's Python bindings                                                        |
+| `vata`         | `subjects/libvata`               | emp     | the C++ interpreter on libvata (no determinization, minimization, concatenation)                                       |
+| `awali`        | `tarball:` awali releases        | emp     | the C++ interpreter on awali's dynamic library                                                                         |
+| `brics`        | `subjects/mata-comparison-brics` | emp     | the Java interpreter on brics (no determinization, minimization)                                                       |
+| `automatalib`  | `subjects/mata-comparison-brics` | emp     | the Java interpreter on AutomataLib (no minimization, concatenation)                                                   |
+| `automata-net` | `subjects/automata-net`          | emp     | the .NET interpreter of Automata.NET (no determinization, minimization, concatenation)                                 |
+| `fado`         | `pypi:fado`                      | emp     | `pyinterpret`'s `FadoEngine` on that FAdo release                                                                      |
+| `automata-py`  | `pypi:automata-lib`              | emp     | `pyinterpret`'s `AutomataLibEngine` on that automata-lib release                                                       |
+| `mata-bdd`     | `subjects/mata`                  | emp     | the C++ interpreter on that revision's NFTs used as automata with BDDs on transitions (no concatenation, minimization) |
+| `cudd`         | `tarball:` CUDD releases         | emp     | the C++ interpreter on symbolic NFAs with CUDD BDDs on transitions (no concatenation, minimization)                    |
+| `mona`         | `tarball:` MONA tags, commits    | emp     | the C++ interpreter on MONA's DFA library (no concatenation)                                                           |
 
 An operation a library lacks makes the instance fail (ERR) instead of being
 skipped. The Java and .NET interpreters read explicit alphabets only, so their
@@ -226,6 +230,8 @@ wrappers mintermize bitvector inputs first (`scripts/massage_arguments.py`,
 cached under `build/minterm/`). The dev shell provides their toolchains (JDK,
 Maven, .NET SDK, Boost for libvata); the wrappers embed the store paths, so keep
 the shell rooted (e.g. with nix-direnv) to keep them from being collected.
+`mata-bdd`, `cudd` and `mona` read bitvector inputs (`@NFA-bits`) only, keeping
+every transition's formula (see _Automata with BDDs on transitions_).
 
 A subject is a git repository (`subjects/<name>`, revisions are tags, branches
 and commits), `pypi:<package>` (revisions are versions), or `tarball:<url>`
@@ -292,7 +298,9 @@ the whole process. An operation that computes an answer also prints
 report cross-checks between the compared builds, whatever their tool. Every
 interpreter names an operation's time alike (`construction`, `intersection`,
 `uni`, `compl`, `concat`, `determinize`, `minimize`, `trim`, `emptiness_check`,
-`inclusion_check`), so a column compares it across tools.
+`inclusion_check`), so a column compares it across tools, and prints the time
+of every operation of the program, all its steps, as `operation`, whose sum
+is the time of the program without the loading of its automata.
 
 ### `.emp` programs
 
@@ -398,6 +406,44 @@ sum is the time of the variant's whole operation; the suite reports on it
 the parsing and the repetitions. A variant that cannot compute an instance
 (`via=word` of a language of more than one word) exits with status 2, an error
 of that run.
+
+### Automata with BDDs on transitions
+
+`suites/bdd.toml` asks whether mata's NFTs can serve as automata whose
+transitions carry BDDs: it runs the TACAS'24 experiments with bitvector inputs
+(`@NFA-bits`, 6 to 16 variables) on
+
+- `mata-bdd`: an automaton over n variables is an NFT of n levels. Its states
+  are the NFT's states of level 0, and the guard of the transitions from a state
+  to a state is its BDD laid out in the NFT: a node is a state of the level of
+  its variable, reading 0 or 1 to its children; a child skipping variables is
+  reached by a jump, read with `JumpMode::AppendDontCares` (DONT_CARE on the
+  skipped levels), so the NFT is as small as the BDD. The operations are mata's
+  NFT algorithms: `intersection()` and `is_included()` read the jumps and
+  DONT_CAREs themselves, complementation and determinization unwind them into
+  0 and 1 first (timed as `unwind`).
+- `cudd`: symbolic NFAs with explicit states and one CUDD BDD per pair of
+  states, with the textbook algorithms: the product conjoins the guards, the
+  subset construction splits the guards of a macrostate into the regions of its
+  targets, inclusion is the antichain algorithm over that construction. It is
+  the baseline of the report.
+- `mona`: MONA's DFA library. MONA has DFAs only, so an NFA is determinized
+  while it is loaded (projecting out variables that choose among the targets,
+  as MONA quantifies), which its `construction` includes and which blows up
+  where the subset construction does.
+- `mata`: mata's own way, mintermizing the inputs into explicit NFAs.
+
+The three read their inputs with the harness' `utils/bits_load.hh`, not with
+mata, and `mata-bdd` and `mona` lay out the guards of `utils/robdd.hh`, so
+they all start from the same canonical BDDs. Compare `operation`, the
+operations of the program, rather than `runtime`, which also holds the parsing
+(`parsing`, `mataparsing`), the construction of the automata (`construction`,
+and `mataminterm` for `mata`) and the start of the process:
+
+```shell
+scripts/bench.py suites/bdd.toml --fetch-from ../mata --repeat 3
+scripts/bench.py suites/bdd.toml --only lia-symbolic mata-bdd:v1.32.45-dev.57,devel cudd:3.0.0
+```
 
 ## Reporting
 

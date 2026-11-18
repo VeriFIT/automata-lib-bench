@@ -1,0 +1,34 @@
+# Automata with BDDs on their transitions: mata's NFTs used as such automata
+# (mata-bdd: one NFT level per variable of the bitvector) against libraries
+# built on BDDs, on the experiments of the TACAS'24 suite whose inputs have
+# bitvector alphabets. cudd (symbolic NFAs over CUDD's BDDs) is the baseline of
+# the report; mona (MONA's DFA library) determinizes every input when loading
+# it; mata is mata's own way, mintermizing the inputs into explicit NFAs.
+# Compare the operations, not the runtime: the 'operation' column sums the
+# operations of the program, without the parsing and the construction of the
+# automata (columns 'parsing'/'mataparsing', 'construction', 'mataminterm').
+#
+#   scripts/bench.py suites/bdd.toml --fetch-from ../mata --repeat 3
+#   scripts/bench.py suites/bdd.toml --only lia-symbolic mata-bdd:v1.32.45-dev.57,devel cudd:3.0.0
+
+include = [
+  { path = "tacas-24.toml", only = [
+    "armc-incl",
+    "b-smt",
+    "email-filter",
+    "lia-symbolic",
+    "param-inter",
+    "param-inter-variadic",
+    "param-union",
+    "param-union-variadic",
+    "param-diff",
+  ] },
+]
+
+[defaults]
+timeout = 60
+# A determinization that blows up (mona's loading, complements) fails the run
+# as a memout rather than taking the machine down.
+memout = 8
+metrics = ["operation", "runtime"]
+builds = ["cudd:3.0.0", "mata-bdd:devel", "mona:1.4-18", "mata:devel"]
