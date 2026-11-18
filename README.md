@@ -445,6 +445,12 @@ scripts/bench.py suites/bdd.toml --fetch-from ../mata --repeat 3
 scripts/bench.py suites/bdd.toml --only lia-symbolic mata-bdd:v1.32.45-dev.57,devel cudd:3.0.0
 ```
 
+Two pre-existing mata issues can produce complement disagreements:
+`mata::nft::complement` of an automaton with no initial states accepts only
+the empty word instead of the full language, and the shared alphabet used for
+the mintermized `mata` automata need not contain a minterm that no transition
+accepts. Check `disagreements.csv` before comparing their complement answers.
+
 ## Reporting
 
 Every run ends with the tables and plots comparing the measured builds; they are
