@@ -460,8 +460,8 @@ class Resolver:
         return builds
 
     def fetch(self, subject):
-        """Fetches the branches and tags of every --fetch-from clone into @subject once per run, the branches as
-        'fetched/<branch>'."""
+        """Fetches the branches, remote-tracking branches and tags of every --fetch-from clone into @subject once per
+        run, the branches as 'fetched/<branch>' and the remote-tracking ones as 'fetched-remotes/<remote>/<branch>'."""
         if subject in self.fetched:
             return
         for repo in self.fetch_from:
@@ -476,6 +476,7 @@ class Resolver:
                     "--tags",
                     source,
                     "+refs/heads/*:refs/remotes/fetched/*",
+                    "+refs/remotes/*:refs/remotes/fetched-remotes/*",
                 ]
             )
         self.fetched.add(subject)
@@ -485,8 +486,9 @@ class Resolver:
             return Build(tool, rev, label_of(label), rev)
         subject = ROOT / tool.subject
         self.fetch(subject)
-        # A branch of a --fetch-from clone first, then whatever git resolves.
-        for candidate in (f"fetched/{rev}", rev):
+        # A branch of a --fetch-from clone first, then its remote-tracking branch (the subject's own 'origin/devel'
+        # is only as fresh as the subject's last fetch), then whatever git resolves.
+        for candidate in (f"fetched/{rev}", f"fetched-remotes/{rev}", rev):
             result = subprocess.run(
                 ["git", "-C", str(subject), "rev-parse", "--verify", "--quiet", f"{candidate}^{{commit}}"],
                 capture_output=True,
@@ -815,8 +817,8 @@ def parse_args():
         action="append",
         default=[],
         metavar="REPO",
-        help="fetch the branches and tags of this clone (path or URL) into the subjects first, so that its "
-        "unpublished branches can be built; repeatable",
+        help="fetch the branches, remote-tracking branches and tags of this clone (path or URL) into the subjects "
+        "first, so that its unpublished branches and its fresh 'origin/<branch>' can be built; repeatable",
     )
     parser.add_argument("-f", "--force", action="store_true", help="rebuild the binaries even if they exist")
     parser.add_argument("-d", "--test-run", action="store_true", help="only run the first benchmark of each input")

@@ -261,7 +261,9 @@ run on its own -- see `harnesses/pycobench/README.md`.
   measured on the same instances in the same run, interleaved. A branch not
   pushed anywhere yet is fetched from the clone it lives in with
   `--fetch-from <clone>` (e.g. `--fetch-from ../mata devel my-branch=new`):
-  the branches of the clone resolve first, then the subject's own revisions.
+  the branches of the clone resolve first, then its remote-tracking branches
+  (`origin/devel` is the clone's, as fresh as its last fetch, not the
+  subject's), then the subject's own revisions.
 - Operations the interpreter knows: an `.emp` program. Anything else, or a new
   API: a C++ program, built against both revisions -- it may use API only the
   new revision has behind its own variant, or be a different file per
