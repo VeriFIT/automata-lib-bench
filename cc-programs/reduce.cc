@@ -28,13 +28,19 @@ int main(int argc, char** argv) try {
 	size_t states{0};
 	size_t transitions{0};
 	for (const Nfa& aut : bench::load_nfas(args.files)) {
-		const Nfa reduced{bench::measure_auto("reduce", [&] {
-			if (algorithm == "simulation") { return mata::nfa::reduce(aut); }
-			return mata::nfa::reduce(aut, nullptr,
-				{{"algorithm", "residual"},
-				 {"type", algorithm == "residual-after" ? "after" : "with"},
-				 {"direction", "forward"}});
-		}, false)};
+		const Nfa reduced{bench::measure_auto(
+			"reduce",
+			[&] {
+				if (algorithm == "simulation") { return mata::nfa::reduce(aut); }
+				return mata::nfa::reduce(
+					aut, nullptr,
+					{{"algorithm", "residual"},
+					 {"type", algorithm == "residual-after" ? "after" : "with"},
+					 {"direction", "forward"}}
+				);
+			},
+			false
+		)};
 		if (!bench::measure_auto("equivalence", [&] { return mata::nfa::are_equivalent(aut, reduced); }, false)) {
 			throw std::runtime_error("reduced automaton is not language-equivalent to its input");
 		}
