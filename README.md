@@ -369,7 +369,7 @@ per variant) are complete examples.
 applications and projections done when solving string constraints with replace
 operations, one file per operation, one `@NFT-explicit` section per operand
 (see nfa-bench's README). The files write epsilon as `<eps>`, which mata reads
-since `f4adcabd`. Four programs take one such file; their variants compute the
+since `f4adcabd`. Five programs take one such file; their variants compute the
 same result in different ways:
 
 | Program            | Variants (`--<option>=`)                                                                                               | Times                              |
