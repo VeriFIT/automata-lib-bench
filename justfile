@@ -16,10 +16,11 @@ build: setup-python
 # Installs what the pipeline needs without Nix, on Debian/Ubuntu or macOS: GCC >= 14
 # (recent mata), cmake, git, Python >= 3.13 with headers (recent mata bindings), a
 # `time` command and uv, and on Debian/Ubuntu also the toolchains of the other
-# libraries (Boost for vata, a JDK and maven for brics and automatalib, the .NET 8
-# SDK for automata-net where apt has it). Debian 13 has new enough packages;
-# Ubuntu 24.04's GCC, Python and just are too old. Elsewhere, install these
-# manually (uv: https://docs.astral.sh/uv/getting-started/installation/).
+# libraries (Boost for vata, a JDK and maven for brics and automatalib, flex and
+# bison for mona's configure, the .NET 8 SDK for automata-net where apt has it).
+# Debian 13 has new enough packages; Ubuntu 24.04's GCC, Python and just are too
+# old. Elsewhere, install these manually
+# (uv: https://docs.astral.sh/uv/getting-started/installation/).
 bootstrap:
 	#!/usr/bin/env bash
 	set -euo pipefail
@@ -32,7 +33,7 @@ bootstrap:
 	    sudo apt-get update
 	    sudo apt-get install -y build-essential cmake curl git python3 python3-dev time \
 	      libboost-dev libboost-filesystem-dev libboost-system-dev libboost-test-dev \
-	      openjdk-21-jdk-headless maven
+	      openjdk-21-jdk-headless maven flex bison
 	    if [ -n "$(apt-cache policy dotnet-sdk-8.0 | grep 'Candidate: [0-9]')" ]; then
 	      sudo apt-get install -y dotnet-sdk-8.0
 	    else
@@ -44,7 +45,7 @@ bootstrap:
 	      echo "error: Homebrew not found; install it from https://brew.sh first" >&2
 	      exit 1
 	    fi
-	    brew install cmake python
+	    brew install cmake python flex bison
 	    echo "note: vata, brics, automatalib and automata-net need Boost < 1.89, a JDK with maven and the .NET 8 SDK; install them yourself" >&2
 	    ;;
 	  *)
