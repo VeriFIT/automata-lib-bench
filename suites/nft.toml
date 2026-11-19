@@ -22,6 +22,12 @@ program = "cc-programs/nft-compose.cc"
 variants = { default = "--mode=auto", fast = "--jump=no-jump", general = "--mode=general" }
 inputs = "benchmarks/nfa-bench/benchmarks/nft/*/composition/pair/*.mata"
 
+[experiment.nft-concatenate-pair]
+description = "Epsilon concatenation of two NFTs: keep the connectors or remove epsilon from the result"
+program = "cc-programs/nft-concatenate.cc"
+variants = { keep = "--use-epsilon=yes", remove = "--use-epsilon=no" }
+inputs = "benchmarks/nfa-bench/benchmarks/nft/*/composition/pair/*.mata"
+
 [experiment.nft-construct-replace]
 extends = "nft-compose-pair"
 description = "The compositions that construct the NFT of a replace operation"

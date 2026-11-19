@@ -65,6 +65,9 @@
                     jdk21_headless
                     maven
                     dotnet-sdk_8
+                    # MONA's configure (scripts/tools/mona.sh) checks for them.
+                    flex
+                    bison
 
                     git
                     jujutsu
