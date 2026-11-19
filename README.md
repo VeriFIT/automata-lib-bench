@@ -369,15 +369,16 @@ per variant) are complete examples.
 applications and projections done when solving string constraints with replace
 operations, one file per operation, one `@NFT-explicit` section per operand
 (see nfa-bench's README). The files write epsilon as `<eps>`, which mata reads
-since `f4adcabd`. Four programs take one such file; their variants compute the
+since `f4adcabd`. Five programs take one such file; their variants compute the
 same result in different ways:
 
-| Program            | Variants (`--<option>=`)                                                                                               | Times                              |
-| ------------------ | ---------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
-| `nft-compose.cc`   | `order=left\|right`, `between=none\|trim\|reduce`, `mode=auto\|general`, `jump`, `sync=<l>,<r>`, `project-out=yes\|no` | `composition`, `trim`, `reduce`    |
-| `nft-apply.cc`     | `direction=forward\|backward`, `via=apply\|compose\|word\|invert`, `jump`                                              | `to_nfa`, `apply`                  |
-| `nft-project.cc`   | `keep=0\|1`, `then=none\|reduce\|minimize`                                                                             | `projection`, `reduce`, `minimize` |
-| `nft-transform.cc` | `operation=invert\|trim\|reduce\|determinize\|remove-epsilon`                                                          | the operation                      |
+| Program              | Variants (`--<option>=`)                                                                                               | Times                              |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| `nft-compose.cc`     | `order=left\|right`, `between=none\|trim\|reduce`, `mode=auto\|general`, `jump`, `sync=<l>,<r>`, `project-out=yes\|no` | `composition`, `trim`, `reduce`    |
+| `nft-concatenate.cc` | `use-epsilon=yes\|no`                                                                                                  | `concatenation`                    |
+| `nft-apply.cc`       | `direction=forward\|backward`, `via=apply\|compose\|word\|invert`, `jump`                                              | `to_nfa`, `apply`                  |
+| `nft-project.cc`     | `keep=0\|1`, `then=none\|reduce\|minimize`                                                                             | `projection`, `reduce`, `minimize` |
+| `nft-transform.cc`   | `operation=invert\|trim\|reduce\|determinize\|remove-epsilon`                                                          | the operation                      |
 
 `jump=repeat-symbol|no-jump` is the `mata::nft::JumpMode` of the operation. With mata's default, `repeat-symbol`,
 `mode=auto` composes by the general algorithm, or, since VeriFIT/mata#996, by the fast one when neither NFT has a jump,
