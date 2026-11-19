@@ -105,3 +105,9 @@ variants = { determinize = "--operation=determinize" }
 [experiment.nft-remove-epsilon]
 extends = "nft-invert"
 variants = { remove-epsilon = "--operation=remove-epsilon" }
+
+[experiment.nft-equivalence]
+description = "Inclusion and equivalence of every NFT of a composition pair with its simulation reduction, which accepts the same relation"
+program = "cc-programs/nft-inclusion.cc"
+variants = { included = "--operation=included", equivalent = "--operation=equivalent" }
+inputs = "benchmarks/nfa-bench/benchmarks/nft/*/composition/pair/*.mata"
